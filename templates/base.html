@@ -1,0 +1,77 @@
+<!-- templates/base.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+    <style>
+        .navbar {
+          background-color: #333;
+          padding: 10px;
+        }
+
+        .navbar ul {
+          list-style: none;
+          display: flex;
+          gap: 20px;
+          margin: 0;
+          padding: 0;
+        }
+
+        .navbar li {
+        }
+
+        .navbar a {
+          color: white;
+          text-decoration: none;
+        }
+
+        .navbar a.current {
+          color: yellow;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 40px;
+        }
+        .left {
+            flex: 1;
+        }
+        .right {
+            flex: 1;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-top: 10px;
+        }
+        input, select, button {
+            margin-top: 5px;
+            padding: 8px;
+            font-size: 14px;
+        }
+        button {
+            margin-top: 20px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #f0f0f0;
+            border-left: 4px solid #333;
+        }
+    </style>
+</head>
+<body>
+    {% include 'navbar.html' %}
+    
+    <div class="content">
+        {% block content %}{% endblock %}
+    </div>
+</body>
+</html>

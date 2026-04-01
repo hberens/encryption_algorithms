@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block content %}
+    <div class="container">
+        <!-- Left column: explanation -->
+        <div class="left">
+            <h2>Vigenere Description</h2>
+            <p>...</p>
+        </div>
+
+        <!-- Right column: form -->
+        <div class="right">
+            <form method="POST">
+                <label>Message:</label>
+                <input type="text" name="message" required value="{{ message }}">
+
+                <label>Key:</label>
+                <input type="text" name="key" required value="{{ key }}">
+
+                <label>Action:</label>
+                <select name="action" required>
+                    <option value="encrypt" {% if action == 'encrypt' %}selected{% endif %}>Encrypt</option>
+                    <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
+                </select>
+
+                <button type="submit">Submit</button>
+            </form>
+
+            {% if answer %}
+                <div class="result">
+                    <h3>Result:</h3>
+                    <p>{{ answer }}</p>
+                </div>
+                <div class="result">
+                    <h3>Time:</h3>
+                    <p>{{ elapsed_time }} ns</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
