@@ -1,4 +1,5 @@
 from flask import Flask, request, render_template
+import os
 import time
 import json
 from algorithms import vigenere, des3, aes, rsa
@@ -51,4 +52,5 @@ def aes_page():
   return render_template("aes.html", current="aes")
 
 if __name__ == "__main__":
-  app.run(debug=True, host="0.0.0.0")
+  port = int(os.environ.get("PORT", "5001"))
+  app.run(debug=True, host="0.0.0.0", port=port)
