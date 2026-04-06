@@ -1,6 +1,98 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>RSA</h1>
-<p>In Progress</p>
+    <div class="container">
+        <div class="left">
+            <h2>RSA description</h2>
+            <p><strong>Type:</strong> Asymmetric cipher.</p>
+            <p><strong>Strength:</strong> Strong when large keys are used; small keys (like this demo) are easy to break.</p>
+            <p><strong>How it works:</strong> Pick primes <code>p</code> and <code>q</code>; <code>n = p×q</code> and <code>φ(n) = (p−1)(q−1)</code>.
+            Choose public exponent <code>e</code>; private exponent <code>d</code> satisfies <code>e×d ≡ 1 (mod φ(n))</code>.
+            Encrypt: <code>C ≡ M^e (mod n)</code>. Decrypt: <code>M ≡ C^d (mod n)</code>.
+            Security rests on the difficulty of factoring <code>n</code>.</p>
+            <p><strong>Key size:</strong> 2048–4096 bits are typical in production (TLS, signatures, key exchange). This page uses tiny primes for speed.</p>
+
+            {% if rsa_steps %}
+                <div class="trace-box">
+                    <h3>How it works (this run)</h3>
+                    {% for step in rsa_steps %}
+                        {% if step.type == 'note' %}
+                            <p class="trace-step note">{{ step.text }}</p>
+                        {% elif step.type == 'summary' %}
+                            <p class="trace-overview"><strong>{{ step.title }}</strong></p>
+                            <ul class="trace-idea">
+                                {% for line in step.lines %}
+                                    <li>{{ line }}</li>
+                                {% endfor %}
+                            </ul>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="right">
+            <form method="POST">
+                {% if rsa_keys %}
+                    <input type="hidden" name="n" value="{{ rsa_keys.n }}">
+                    <input type="hidden" name="e" value="{{ rsa_keys.e }}">
+                    <input type="hidden" name="d" value="{{ rsa_keys.d }}">
+                    {% if rsa_keys.p is not none %}
+                    <input type="hidden" name="p" value="{{ rsa_keys.p }}">
+                    {% endif %}
+                    {% if rsa_keys.q is not none %}
+                    <input type="hidden" name="q" value="{{ rsa_keys.q }}">
+                    {% endif %}
+                    {% if rsa_keys.phi is not none %}
+                    <input type="hidden" name="phi" value="{{ rsa_keys.phi }}">
+                    {% endif %}
+                {% endif %}
+
+                <label>Message or ciphertext:</label>
+                <textarea name="message" rows="5" placeholder="Encrypt: type plain text. Decrypt: paste comma-separated numbers from encryption.">{{ message }}</textarea>
+
+                <label>Action:</label>
+                <select name="action">
+                    <option value="encrypt" {% if action == 'encrypt' %}selected{% endif %}>Encrypt</option>
+                    <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
+                </select>
+
+                <button type="submit" name="generate" value="1">Generate new key pair</button>
+                <button type="submit">Run encrypt / decrypt</button>
+            </form>
+
+            {% if rsa_error %}
+                <div class="result" style="border-left-color: #a33;">
+                    <h3>Error</h3>
+                    <p>{{ rsa_error }}</p>
+                </div>
+            {% endif %}
+
+            {% if answer is not none and answer != '' %}
+                <div class="result">
+                    <h3>Output</h3>
+                    <p class="rsa-output">{{ answer }}</p>
+                </div>
+            {% endif %}
+
+            {% if elapsed_time is not none %}
+                <div class="result">
+                    <h3>Time</h3>
+                    <p>{{ elapsed_time }} ns</p>
+                </div>
+            {% endif %}
+
+            {% if rsa_keys %}
+                <div class="result">
+                    <h3>Current keys (demo)</h3>
+                    <p><code>n</code> = {{ rsa_keys.n }}</p>
+                    <p><code>e</code> (public) = {{ rsa_keys.e }}</p>
+                    <p><code>d</code> (private — keep secret in real systems) = {{ rsa_keys.d }}</p>
+                    {% if rsa_keys.p is not none and rsa_keys.q is not none %}
+                    <p><code>p</code> = {{ rsa_keys.p }}, <code>q</code> = {{ rsa_keys.q }}, <code>φ(n)</code> = {{ rsa_keys.phi }}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
 {% endblock %}

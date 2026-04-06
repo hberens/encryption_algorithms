@@ -37,7 +37,48 @@ def vigenere_page():
 
 @app.route("/rsa", methods=["GET", "POST"])
 def rsa_page():
-  return render_template("rsa.html", current="rsa")
+  message = ""
+  action = "encrypt"
+  answer = None
+  elapsed_ns = None
+  rsa_steps = None
+  rsa_keys = None
+  rsa_error = None
+
+  if request.method == "POST":
+    message = request.form.get("message", "")
+    action = request.form.get("action", "encrypt")
+    regenerate = bool(request.form.get("generate"))
+    start_ns = time.perf_counter_ns()
+    out = rsa(
+      message,
+      action,
+      n_str=request.form.get("n", ""),
+      e_str=request.form.get("e", ""),
+      d_str=request.form.get("d", ""),
+      p_str=request.form.get("p", ""),
+      q_str=request.form.get("q", ""),
+      phi_str=request.form.get("phi", ""),
+      regenerate=regenerate,
+    )
+    answer = out["text"]
+    rsa_steps = out["steps"]
+    rsa_keys = out["keys"]
+    rsa_error = out["error"]
+    end_ns = time.perf_counter_ns()
+    elapsed_ns = end_ns - start_ns
+
+  return render_template(
+    "rsa.html",
+    current="rsa",
+    message=message,
+    action=action,
+    answer=answer,
+    elapsed_time=elapsed_ns,
+    rsa_steps=rsa_steps,
+    rsa_keys=rsa_keys,
+    rsa_error=rsa_error,
+  )
 
 @app.route("/des", methods=["GET", "POST"])
 def des_page():
