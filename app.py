@@ -1,6 +1,8 @@
-from flask import Flask, request, render_template
+from flask import Flask, request, render_template, send_file
 import os
 import time
+import io
+import base64
 from algorithms import vigenere, des3, aes, rsa
 
 app = Flask(__name__)
@@ -83,19 +85,49 @@ def rsa_page():
 @app.route("/des", methods=["GET", "POST"])
 def des_page():
   message, key1, key2, key3, action, answer, elapsed_ns = "", "", "", "", "encrypt", None, None
+  input_type = "message"
+  download_data = None
+  filename = ""
 
   if request.method == "POST":
-    message = request.form.get("message", "")
+    input_type = request.form.get("input_type", "message")
+    file_bytes = None
+
+    if input_type == "file":
+      uploaded_file = request.files.get("file")
+      if uploaded_file and uploaded_file.filename:
+        file_bytes = uploaded_file.read()
+    else:
+      message = request.form.get("message", "")
+
     key1 = request.form.get("key1", "")
     key2 = request.form.get("key2", "")
     key3 = request.form.get("key3", "")
     action = request.form.get("action", "")
     start_ns = time.perf_counter_ns()
-    answer = des3(message, key1, key2, key3, action)
+    answer = des3(file_bytes if file_bytes is not None else message, key1, key2, key3, action)
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
 
-  return render_template("des.html", current="des", message=message, key1=key1, key2=key2, key3=key3, action=action, answer=answer, elapsed_time=elapsed_ns)
+    # Prepare download data if answer is bytes
+    if isinstance(answer, bytes):
+      download_data = base64.b64encode(answer).decode('utf-8')
+      filename = uploaded_file.filename
+
+  return render_template(
+    "des.html",
+    current="des",
+    message=message,
+    key1=key1,
+    key2=key2,
+    key3=key3,
+    action=action,
+    answer=answer,
+    elapsed_time=elapsed_ns,
+    input_type=input_type,
+    download_data=download_data,
+    filename=filename
+  )
 
 @app.route("/aes", methods=["GET", "POST"])
 def aes_page():

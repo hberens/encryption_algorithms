@@ -91,7 +91,7 @@ def vigenere(message, key, action):
 
 
 def des3(message, k1, k2, k3, action):
-  pass
+  return message
 
 
 def aes():

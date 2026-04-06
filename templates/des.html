@@ -10,9 +10,16 @@
 
         <!-- Right column: form -->
         <div class="right">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 <label>Message:</label>
-                <input type="text" name="message" required value="{{ message }}">
+                <div class="toggle-options">
+                    <label><input type="radio" name="input_type" value="message" {% if input_type == 'message' %}checked{% endif %}> Use text</label>
+                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Use uploaded file</label>
+                </div>
+
+                <input id="message-input" {% if input_type != 'message' %}style="display:none;"{% endif %}type="text" name="message" value="{{ message }}">
+
+                <input id="file-input" {% if input_type != 'file' %}style="display:none;"{% endif %} type="file" name="file" accept="*/*">
 
                 <label>Key 1:</label>
                 <input type="text" name="key1" required value="{{ key1 }}">
@@ -32,10 +39,41 @@
                 <button type="submit">Submit</button>
             </form>
 
+            <script>
+                const messageRadio = document.querySelector('input[name="input_type"][value="message"]');
+                const fileRadio = document.querySelector('input[name="input_type"][value="file"]');
+                const messageInput = document.getElementById('message-input');
+                const fileInput = document.getElementById('file-input');
+                const messageField = document.querySelector('textarea[name="message"]');
+                const fileField = document.querySelector('input[name="file"]');
+
+                function updateInputToggle() {
+                    if (messageRadio.checked) {
+                        messageInput.style.display = 'block';
+                        fileInput.style.display = 'none';
+                        messageField.disabled = false;
+                        fileField.disabled = true;
+                    } else {
+                        messageInput.style.display = 'none';
+                        fileInput.style.display = 'block';
+                        messageField.disabled = true;
+                        fileField.disabled = false;
+                    }
+                }
+
+                messageRadio.addEventListener('change', updateInputToggle);
+                fileRadio.addEventListener('change', updateInputToggle);
+                updateInputToggle();
+            </script>
+
             {% if answer %}
                 <div class="result">
                     <h3>Result:</h3>
-                    <p>{{ answer }}</p>
+                    {% if download_data %}
+                        <a href="data:application/octet-stream;base64,{{ download_data }}">Download Encrypted {{ filename }}</a>
+                    {% else %}
+                        <p>{{ answer }}</p>
+                    {% endif %}
                 </div>
                 <div class="result">
                     <h3>Time:</h3>
