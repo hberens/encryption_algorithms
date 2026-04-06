@@ -6,6 +6,30 @@
         <div class="left">
             <h2>Vigenere Description</h2>
             <p>...</p>
+
+            {% if answer is not none and vigenere_steps %}
+                <div class="trace-box">
+                    <h3>How it works</h3>
+                    {% for step in vigenere_steps %}
+                        {% if step.type == 'note' %}
+                            <p class="trace-step note">{{ step.text }}</p>
+                        {% elif step.type == 'summary' %}
+                            <p class="trace-overview"><strong>{{ step.title }}</strong></p>
+                            <ul class="trace-idea">
+                                {% for line in step.lines %}
+                                    <li>{{ line }}</li>
+                                {% endfor %}
+                            </ul>
+                            {% if step.example %}
+                                <p class="trace-formula">
+                                    Example: first letter <code>{{ step.example.in }}</code> with key <code>{{ step.example.key }}</code>
+                                    → <code>{{ step.example.out }}</code> (same idea for the rest).
+                                </p>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
 
         <!-- Right column: form -->
@@ -26,7 +50,7 @@
                 <button type="submit">Submit</button>
             </form>
 
-            {% if answer %}
+            {% if answer is not none and vigenere_steps %}
                 <div class="result">
                     <h3>Result:</h3>
                     <p>{{ answer }}</p>

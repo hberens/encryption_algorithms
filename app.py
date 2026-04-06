@@ -1,9 +1,7 @@
 from flask import Flask, request, render_template
 import os
 import time
-import json
 from algorithms import vigenere, des3, aes, rsa
-from collections import defaultdict
 
 app = Flask(__name__)
 
@@ -13,18 +11,29 @@ def home_page():
 
 @app.route("/vigenere", methods=["GET", "POST"])
 def vigenere_page():
-  message, key, action, answer, elapsed_ns= "", "", "encrypt", None, None
+  message, key, action, answer, elapsed_ns, vigenere_steps = "", "", "encrypt", None, None, None
 
   if request.method == "POST":
     message = request.form.get("message", "")
     key = request.form.get("key", "")
     action = request.form.get("action", "")
     start_ns = time.perf_counter_ns()
-    answer = vigenere(message, key, action)
+    out = vigenere(message, key, action)
+    answer = out["text"]
+    vigenere_steps = out["steps"]
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
 
-  return render_template("vigenere.html", current="vigenere",message=message, key=key, action=action, answer=answer, elapsed_time=elapsed_ns)
+  return render_template(
+    "vigenere.html",
+    current="vigenere",
+    message=message,
+    key=key,
+    action=action,
+    answer=answer,
+    elapsed_time=elapsed_ns,
+    vigenere_steps=vigenere_steps,
+  )
 
 @app.route("/rsa", methods=["GET", "POST"])
 def rsa_page():
