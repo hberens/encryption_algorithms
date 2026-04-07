@@ -1,7 +1,6 @@
-from flask import Flask, request, render_template, send_file
+from flask import Flask, request, render_template
 import os
 import time
-import io
 import base64
 from algorithms import vigenere, des3, aes, rsa
 
@@ -92,27 +91,42 @@ def des_page():
   if request.method == "POST":
     input_type = request.form.get("input_type", "message")
     file_bytes = None
-
+    key1 = request.form.get("key1", "")
+    key2 = request.form.get("key2", "")
+    key3 = request.form.get("key3", "")
+    action = request.form.get("action", "")
     if input_type == "file":
       uploaded_file = request.files.get("file")
       if uploaded_file and uploaded_file.filename:
         file_bytes = uploaded_file.read()
     else:
       message = request.form.get("message", "")
+      if action == "encrypt":
+        msg = message.encode()
+      else:
+        try:
+          msg = bytes.fromhex(message)
+        except:
+          pass
+        
 
-    key1 = request.form.get("key1", "")
-    key2 = request.form.get("key2", "")
-    key3 = request.form.get("key3", "")
-    action = request.form.get("action", "")
+
     start_ns = time.perf_counter_ns()
-    answer = des3(file_bytes if file_bytes is not None else message, key1, key2, key3, action)
+    try:
+      answer = des3(file_bytes if file_bytes is not None else msg, key1, key2, key3, action)
+    except:
+      answer = "ERROR: Invalid Input"
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
 
     # Prepare download data if answer is bytes
-    if isinstance(answer, bytes):
+    if input_type == "file":
       download_data = base64.b64encode(answer).decode('utf-8')
       filename = uploaded_file.filename
+    elif action == "encrypt":
+      answer = answer.hex()
+    elif isinstance(answer, bytes):
+      answer = answer.decode('utf-8')
 
   return render_template(
     "des.html",

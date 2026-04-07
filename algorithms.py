@@ -1,6 +1,7 @@
 import math
 import secrets
 import string
+import des
 
 
 def vigenere(message, key, action):
@@ -90,8 +91,34 @@ def vigenere(message, key, action):
   return {"text": "".join(out), "steps": steps}
 
 
-def des3(message, k1, k2, k3, action):
-  return message
+def des3(msg, k1, k2, k3, action):
+  k1 = f"{int(k1 if len(k1) < 16 else k1[-16:], 16):0{64}b}"
+  k2 = f"{int(k2, 16):0{64}b}"
+  k3 = f"{int(k3, 16):0{64}b}"
+  if action == "encrypt":
+    # pad up to 8 bytes (make multiple of 8)
+    msg = des.pad(msg)
+    
+    data = [''.join(f'{byte:08b}' for byte in msg[i:i+8]) for i in range(0, len(msg), 8)]
+    # DES encryption with k1
+    data = [des.des(datum, k1, "encrypt") for datum in data]
+    # DES decryption with k2
+    data = [des.des(datum, k2, "decrypt") for datum in data]
+    # DES encryption with k3
+    data = [des.des(datum, k3, "encrypt") for datum in data]
+    return b''.join(bytes(int(datum[i:i+8], 2) for i in range(0, 64, 8)) for datum in data)
+  else:
+    if len(msg) % 8 != 0:
+      return "Improper encoding"
+    data = [''.join(f'{byte:08b}' for byte in msg[i:i+8]) for i in range(0, len(msg), 8)]
+    # DES decryption with k3
+    data = [des.des(datum, k3, "decrypt") for datum in data]
+    # DES encryption with k2
+    data = [des.des(datum, k2, "encrypt") for datum in data]
+    # DES decryption with k1
+    data = [des.des(datum, k1, "decrypt") for datum in data]
+    # unpad up to 8 bytes (make multiple of 8)
+    return des.unpad(b''.join(bytes(int(datum[i:i+8], 2) for i in range(0, 64, 8)) for datum in data))
 
 
 def aes():
@@ -309,3 +336,9 @@ def rsa(
     )
 
   return {"text": out_text, "steps": steps, "keys": keys, "error": err}
+
+
+if __name__ == "__main__":
+  print(des3(bytes([0]*16),"111133337777fff5685854ff","1111222244448888","1111222244448888","encrypt"))
+  # print(bytes([16]+[0]*7+[8]*8))
+  # print(des3(b'\x92\x95\xb5\x9b\xb3\x84sn\x92\x95\xb5\x9b\xb3\x84sn\xac\xb2\xcf\x12Aa\x8c\x8b',"0"*64,"1"*64,"0"*64,"decrypt"))
