@@ -108,9 +108,7 @@ def des_page():
           msg = bytes.fromhex(message)
         except:
           pass
-        
-
-
+    print("hi")
     start_ns = time.perf_counter_ns()
     try:
       answer = des3(file_bytes if file_bytes is not None else msg, key1, key2, key3, action)
@@ -118,11 +116,13 @@ def des_page():
       answer = "ERROR: Invalid Input"
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
+    print("hmmm")
 
     # Prepare download data if answer is bytes
     if input_type == "file":
-      download_data = base64.b64encode(answer).decode('utf-8')
-      filename = uploaded_file.filename
+      if isinstance(answer, bytes):
+        download_data = base64.b64encode(answer).decode('utf-8')
+        filename = uploaded_file.filename
     elif action == "encrypt":
       answer = answer.hex()
     elif isinstance(answer, bytes):
