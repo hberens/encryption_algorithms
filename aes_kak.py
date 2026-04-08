@@ -11,6 +11,7 @@ AES implementation aligned with Avi Kak, Lecture 8 (Computer and Network Securit
 
 from __future__ import annotations
 
+import re
 import secrets
 
 _BLOCK = 16
@@ -271,7 +272,8 @@ def aes_cipher(data: bytes, key_hex: str, key_bits: int, action: str) -> bytes:
   if key_bits not in (128, 192, 256):
     raise ValueError("Key size must be 128, 192, or 256 bits.")
 
-  key_hex = (key_hex or "").replace(" ", "").replace("\n", "")
+  # Typed or file-imported hex: drop all whitespace (spaces, newlines, tabs).
+  key_hex = re.sub(r"\s+", "", key_hex or "")
   key_len = key_bits // 8
   expected_hex = key_len * 2
   if len(key_hex) != expected_hex:

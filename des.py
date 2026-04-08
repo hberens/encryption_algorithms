@@ -136,6 +136,24 @@ def unpad(msg):
       raise Exception("Incorrect padding")
   return msg[:-pad_len]
 
+
+def parse_triple_des_keys_from_file(content: str):
+  """
+  Read three 16-hex-digit keys from a small text file: three lines, or one line
+  with three whitespace-separated tokens (same format the web UI documents).
+  """
+  content = (content or "").strip()
+  if not content:
+    return None
+  lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
+  if len(lines) >= 3:
+    return lines[0][:16], lines[1][:16], lines[2][:16]
+  parts = content.split()
+  if len(parts) >= 3:
+    return parts[0][:16], parts[1][:16], parts[2][:16]
+  return None
+
+
 def des(msg, key, action):
   # Generate all 16 Keys
   KEY_PLUS = "".join([key[pc1_table[i]-1] for i in range(56)])

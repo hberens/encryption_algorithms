@@ -2,7 +2,6 @@
 
 {% block content %}
     <div class="container">
-        <!-- Left column: explanation -->
         <div class="left">
             <h2>Vigenère description</h2>
             <p><strong>Type:</strong> Polyalphabetic substitution cipher (many “Caesar” shifts in one message).</p>
@@ -10,6 +9,7 @@
             <p><strong>How it works:</strong> Choose a keyword. A–Z are treated as numbers 0–25. Each plaintext letter is shifted by the value of the next keyword letter; the keyword wraps when it runs out. Encrypt: add the key letter (mod 26); decrypt: subtract it (mod 26). Spaces and punctuation are usually left unchanged (this app follows that rule and only advances the key on letters).</p>
             <p><strong>Key:</strong> A word or phrase; longer, less predictable keys are harder to crack. There is no separate public/private key—anyone who knows the keyword can encrypt or decrypt.</p>
             <p><strong>Use:</strong> Historical cipher and teaching example; not used for serious security today.</p>
+            <p><strong>Input note:</strong> Vigenère applies only to <strong>text</strong> (no arbitrary binary or image payloads).</p>
 
             {% if answer is not none and vigenere_steps %}
                 <div class="trace-box">
@@ -36,14 +36,15 @@
             {% endif %}
         </div>
 
-        <!-- Right column: form -->
         <div class="right">
-            <form method="POST">
-                <label>Message:</label>
-                <input type="text" name="message" required value="{{ message }}">
+            <form method="POST" enctype="multipart/form-data">
+                <label>Message (text only):</label>
+                <input type="text" name="message" value="{{ message }}" placeholder="Plaintext or ciphertext">
 
-                <label>Key:</label>
-                <input type="text" name="key" required value="{{ key }}">
+                <label>Keyword (type or import file):</label>
+                <input type="text" name="key" value="{{ key }}" placeholder="Keyword">
+                <label>Optional key file (UTF-8 text, replaces typed key if provided):</label>
+                <input type="file" name="key_file" accept=".txt,.key,text/plain">
 
                 <label>Action:</label>
                 <select name="action" required>
@@ -51,16 +52,35 @@
                     <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
                 </select>
 
+                <label>Output:</label>
+                <div class="toggle-options">
+                    <label><input type="radio" name="output_mode" value="textbox" checked> Show in text box below</label>
+                    <label><input type="radio" name="output_mode" value="file"> Download as file</label>
+                </div>
+                <label>Download filename (optional, for file output):</label>
+                <input type="text" name="export_name" placeholder="e.g. cipher_out.txt">
+
                 <button type="submit">Submit</button>
             </form>
 
-            {% if answer is not none and vigenere_steps %}
+            {% if answer is not none %}
                 <div class="result">
-                    <h3>Result:</h3>
-                    <p>{{ answer }}</p>
+                    <h3>Result</h3>
+                    {% if show_textbox %}
+                        <textarea class="result-text" readonly>{{ answer }}</textarea>
+                    {% else %}
+                        <p>{{ answer }}</p>
+                    {% endif %}
+                    {% if download_data %}
+                        <p class="download-row">
+                            <a href="data:application/octet-stream;base64,{{ download_data }}" download="{{ download_filename or 'vigenere_output.txt' }}">Download {{ download_filename or 'output' }}</a>
+                        </p>
+                    {% endif %}
                 </div>
+            {% endif %}
+            {% if elapsed_time is not none %}
                 <div class="result">
-                    <h3>Time:</h3>
+                    <h3>Time</h3>
                     <p>{{ elapsed_time }} ns</p>
                 </div>
             {% endif %}

@@ -2,7 +2,6 @@
 
 {% block content %}
     <div class="container">
-        <!-- Left column: explanation -->
         <div class="left">
             <h2>3DES description</h2>
             <p><strong>Type:</strong> Symmetric block cipher.</p>
@@ -13,56 +12,50 @@
 
             <h3>Directions for 3DES encryptor/decryptor</h3>
             <ul>
-                <li>For text input, only hex will be accepted for encrypted texts while ASCII will be accepted for plaintext</li>
-                <li>Keys are expected to be 16 character hex numbers (8 bytes each)</li>
-                <li>If a key greater than 8 bytes is entered, only the last 8 bytes will be used</li>
-                <li>DES encryption only works on blocks of 8 bytes</li>
-                <li>PKCS #5 padding is implemented to ensure input is always a multiple of 8 bytes</li>
-                <li>On decryption, padding must be correctly implemented or decryption will fail</li>
-                <li>3DES on a file takes some time</li>
-            </ul>
-            <h3>3DES Algorithm Description</h3>
-            <ul>
-                <li>3DES performs DES encryption 3 times sequentially</li>
-                <li>Encryption process: Encrypt with key 1 → Decrypt with key 2 → Encrypt with key 3</li>
-                <li>Decryption process: Reverse of encryption (Decrypt with key 3 → Encrypt with key 2 → Decrypt with key 1)</li>
-                <li>PKCS #5 padding is automatically applied before encryption and removed after decryption</li>
-                <li>
-                DES is a symmetric encryption algorithm that encrypts data in 64-bit blocks using a 56-bit key. It works through a series of permutations and substitutions on the input data, applying the same key-based transformations 16 times (called "rounds"). The same key is used for both encryption and decryption. DES is considered weak by modern standards due to its small key size, which is why 3DES (Triple DES) applies it three times with different keys to increase security
-                </li>
-                <li>
-                3DES can also be done with 2 keys. The only difference is key 1 is reused as key 3
-                </li>
+                <li><strong>Text:</strong> encrypt = UTF-8 plaintext; decrypt = hex ciphertext.</li>
+                <li><strong>File:</strong> any binary (images, PDFs, etc.); output via text box or download.</li>
+                <li>Keys: three 16-hex-digit values (8 bytes each), typed or from a key file (three lines or three tokens).</li>
+                <li>PKCS #5 padding on encrypt; removed on decrypt.</li>
             </ul>
         </div>
 
-        <!-- Right column: form -->
         <div class="right">
             <form method="POST" enctype="multipart/form-data">
-                <label>Message:</label>
+                <label>Data source:</label>
                 <div class="toggle-options">
                     <label><input type="radio" name="input_type" value="message" {% if input_type == 'message' %}checked{% endif %}> Use text</label>
-                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Use uploaded file</label>
+                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Upload file</label>
                 </div>
 
-                <input id="message-input" {% if input_type != 'message' %}style="display:none;"{% endif %}type="text" name="message" value="{{ message }}">
+                <input id="message-input" {% if input_type != 'message' %}style="display:none;"{% endif %} type="text" name="message" value="{{ message }}" placeholder="Plaintext (encrypt) or hex (decrypt)">
 
                 <input id="file-input" {% if input_type != 'file' %}style="display:none;"{% endif %} type="file" name="file" accept="*/*">
 
-                <label>Key 1:</label>
+                <label>Key 1 (16 hex digits):</label>
                 <input type="text" pattern="[0-9a-fA-F]{16}" name="key1" required value="{{ key1 }}">
 
-                <label>Key 2:</label>
+                <label>Key 2 (16 hex digits):</label>
                 <input type="text" pattern="[0-9a-fA-F]{16}" name="key2" required value="{{ key2 }}">
 
-                <label>Key 3:</label>
+                <label>Key 3 (16 hex digits):</label>
                 <input type="text" pattern="[0-9a-fA-F]{16}" name="key3" required value="{{ key3 }}">
+
+                <label>Optional key file (3 lines of 16 hex chars, or one line with 3 hex tokens):</label>
+                <input type="file" name="key_file" accept=".txt,.key,text/plain">
 
                 <label>Action:</label>
                 <select name="action" required>
                     <option value="encrypt" {% if action == 'encrypt' %}selected{% endif %}>Encrypt</option>
                     <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
                 </select>
+
+                <label>Output:</label>
+                <div class="toggle-options">
+                    <label><input type="radio" name="output_mode" value="textbox" checked> Show in text box</label>
+                    <label><input type="radio" name="output_mode" value="file"> Download as file</label>
+                </div>
+                <label>Download filename (optional):</label>
+                <input type="text" name="export_name" placeholder="e.g. encrypted.bin">
 
                 <button type="submit">Submit</button>
             </form>
@@ -72,20 +65,18 @@
                 const fileRadio = document.querySelector('input[name="input_type"][value="file"]');
                 const messageInput = document.getElementById('message-input');
                 const fileInput = document.getElementById('file-input');
-                const messageField = document.querySelector('textarea[name="message"]');
-                const fileField = document.querySelector('input[name="file"]');
 
                 function updateInputToggle() {
                     if (messageRadio.checked) {
                         messageInput.style.display = 'block';
                         fileInput.style.display = 'none';
-                        messageField.disabled = false;
-                        fileField.disabled = true;
+                        messageInput.disabled = false;
+                        fileInput.disabled = true;
                     } else {
                         messageInput.style.display = 'none';
                         fileInput.style.display = 'block';
-                        messageField.disabled = true;
-                        fileField.disabled = false;
+                        messageInput.disabled = true;
+                        fileInput.disabled = false;
                     }
                 }
 
@@ -94,19 +85,26 @@
                 updateInputToggle();
             </script>
 
-            {% if answer %}
+            {% if answer is not none %}
                 <div class="result">
-                    <h3>Result:</h3>
-                    {% if download_data %}
-                        <a href="data:application/octet-stream;base64,{{ download_data }}">Download Encrypted {{ filename }}</a>
+                    <h3>Result</h3>
+                    {% if show_textbox %}
+                        <textarea class="result-text" readonly>{{ answer }}</textarea>
                     {% else %}
                         <p>{{ answer }}</p>
                     {% endif %}
+                    {% if download_data %}
+                        <p class="download-row">
+                            <a href="data:application/octet-stream;base64,{{ download_data }}" download="{{ download_filename or '3des_output.bin' }}">Download {{ download_filename or 'output' }}</a>
+                        </p>
+                    {% endif %}
                 </div>
+                {% if elapsed_time is not none %}
                 <div class="result">
-                    <h3>Time:</h3>
+                    <h3>Time</h3>
                     <p>{{ elapsed_time }} ns</p>
                 </div>
+                {% endif %}
             {% endif %}
         </div>
     </div>

@@ -39,14 +39,24 @@
                     <option value="256" {% if key_bits == 256 %}selected{% endif %}>256-bit (64 hex digits)</option>
                 </select>
 
-                <label>Key (hex):</label>
+                <label>Key (hex, type or import file):</label>
                 <input type="text" name="key" id="aes-key" required value="{{ key_hex }}" placeholder="e.g. 32 / 48 / 64 hex characters" autocomplete="off" spellcheck="false">
+                <label>Optional key file (hex digits only, whitespace ignored):</label>
+                <input type="file" name="key_file" accept=".txt,.key,text/plain">
 
                 <label>Action:</label>
                 <select name="action" required>
                     <option value="encrypt" {% if action == 'encrypt' %}selected{% endif %}>Encrypt</option>
                     <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
                 </select>
+
+                <label>Output:</label>
+                <div class="toggle-options">
+                    <label><input type="radio" name="output_mode" value="textbox" checked> Show in text box</label>
+                    <label><input type="radio" name="output_mode" value="file"> Download as file</label>
+                </div>
+                <label>Download filename (optional):</label>
+                <input type="text" name="export_name" placeholder="e.g. secret.aes">
 
                 <button type="submit">Submit</button>
             </form>
@@ -86,19 +96,23 @@
                 updateKeyPlaceholder();
             </script>
 
-            {% if answer %}
+            {% if answer is not none %}
                 <div class="result">
-                    <h3>Result:</h3>
-                    {% if download_data %}
-                        <p>{{ answer }}</p>
-                        <a href="data:application/octet-stream;base64,{{ download_data }}" download="{{ filename or 'output.bin' }}">Download {{ filename or 'output' }}</a>
+                    <h3>Result</h3>
+                    {% if show_textbox %}
+                        <textarea class="result-text rsa-output" readonly>{{ answer }}</textarea>
                     {% else %}
-                        <p class="rsa-output">{{ answer }}</p>
+                        <p>{{ answer }}</p>
+                    {% endif %}
+                    {% if download_data %}
+                        <p class="download-row">
+                            <a href="data:application/octet-stream;base64,{{ download_data }}" download="{{ download_filename or 'aes_output.bin' }}">Download {{ download_filename or 'output' }}</a>
+                        </p>
                     {% endif %}
                 </div>
                 {% if elapsed_time is not none %}
                 <div class="result">
-                    <h3>Time:</h3>
+                    <h3>Time</h3>
                     <p>{{ elapsed_time }} ns</p>
                 </div>
                 {% endif %}

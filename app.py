@@ -6,13 +6,13 @@ import re
 import time
 import base64
 
+import des as des_module
+
 from algorithms import vigenere, des3, aes_cipher, rsa
 from io_helpers import (
   read_upload_text,
   merge_key_field,
   parse_rsa_key_file,
-  parse_des_keys_file,
-  parse_aes_key_hex,
 )
 
 app = Flask(__name__)
@@ -56,11 +56,6 @@ def _apply_output_mode(
 @app.route("/", methods=["GET"])
 def home_page():
   return render_template("home.html", current="home")
-
-
-@app.route("/workflow", methods=["GET"])
-def workflow_page():
-  return render_template("workflow.html", current="workflow")
 
 
 @app.route("/vigenere", methods=["GET", "POST"])
@@ -115,7 +110,7 @@ def vigenere_page():
 def rsa_page():
   message = ""
   action = "encrypt"
-  input_type = "message"
+  input_type = "message"  # message | file
   answer = None
   elapsed_ns = None
   rsa_steps = None
@@ -245,7 +240,7 @@ def des_page():
 
     kf = read_upload_text(request.files.get("key_file"))
     if kf:
-      triple = parse_des_keys_file(kf)
+      triple = des_module.parse_triple_des_keys_from_file(kf)
       if triple:
         key1, key2, key3 = triple
 
@@ -381,8 +376,7 @@ def aes_page():
   if request.method == "POST":
     input_type = request.form.get("input_type", "message")
     kf_aes = read_upload_text(request.files.get("key_file"))
-    hex_from_file = parse_aes_key_hex(kf_aes) if kf_aes else None
-    key_hex = hex_from_file if hex_from_file else (request.form.get("key", "") or "")
+    key_hex = merge_key_field(request.form.get("key", ""), kf_aes)
     try:
       key_bits = int(request.form.get("key_bits", "128"))
     except ValueError:

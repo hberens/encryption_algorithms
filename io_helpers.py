@@ -1,4 +1,6 @@
-"""Parse optional key files and normalize text read from uploads."""
+"""Read uploaded key files and parse RSA key bundles."""
+
+from __future__ import annotations
 
 import json
 import re
@@ -41,22 +43,3 @@ def parse_rsa_key_file(content: str) -> dict[str, str]:
       if key in ("n", "e", "d", "p", "q", "phi"):
         out[key] = val
   return out
-
-
-def parse_des_keys_file(content: str) -> tuple[str, str, str] | None:
-  """Three lines of 16 hex chars, or one line with three hex tokens."""
-  content = (content or "").strip()
-  if not content:
-    return None
-  lines = [ln.strip() for ln in content.splitlines() if ln.strip()]
-  if len(lines) >= 3:
-    return lines[0][:16], lines[1][:16], lines[2][:16]
-  parts = content.split()
-  if len(parts) >= 3:
-    return parts[0][:16], parts[1][:16], parts[2][:16]
-  return None
-
-
-def parse_aes_key_hex(content: str) -> str | None:
-  s = re.sub(r"\s+", "", (content or "").strip())
-  return s if s else None

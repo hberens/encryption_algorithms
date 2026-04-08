@@ -10,7 +10,8 @@
             Choose public exponent <code>e</code>; private exponent <code>d</code> satisfies <code>e×d ≡ 1 (mod φ(n))</code>.
             Encrypt: <code>C ≡ M^e (mod n)</code>. Decrypt: <code>M ≡ C^d (mod n)</code>.
             Security rests on the difficulty of factoring <code>n</code>.</p>
-            <p><strong>Key size:</strong> 2048–4096 bits are typical in production (TLS, signatures, key exchange). This page uses tiny primes for speed.</p>
+            <p><strong>Key size:</strong> 2048–4096 bits are typical in production. This page uses tiny primes for speed.</p>
+            <p><strong>Files:</strong> You can encrypt/decrypt <strong>any binary file</strong> byte-by-byte. Ciphertext is comma-separated integers (text). Key file: JSON <code>{"n":"…","e":"…","d":"…","p":"…","q":"…","phi":"…"}</code> or lines like <code>n=123</code>.</p>
 
             {% if rsa_steps %}
                 <div class="trace-box">
@@ -32,7 +33,7 @@
         </div>
 
         <div class="right">
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 {% if rsa_keys %}
                     <input type="hidden" name="n" value="{{ rsa_keys.n }}">
                     <input type="hidden" name="e" value="{{ rsa_keys.e }}">
@@ -49,7 +50,15 @@
                 {% endif %}
 
                 <label>Message or ciphertext:</label>
-                <textarea name="message" rows="5" placeholder="Encrypt: type plain text. Decrypt: paste comma-separated numbers from encryption.">{{ message }}</textarea>
+                <div class="toggle-options">
+                    <label><input type="radio" name="input_type" value="message" {% if input_type == 'message' %}checked{% endif %}> Type / paste</label>
+                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Upload file (any binary)</label>
+                </div>
+                <textarea id="rsa-message" name="message" rows="5" {% if input_type != 'message' %}style="display:none;"{% endif %} placeholder="Encrypt: text or use file. Decrypt: comma-separated numbers (or upload .txt).">{{ message }}</textarea>
+                <input id="rsa-file" type="file" name="file" accept="*/*" {% if input_type != 'file' %}style="display:none;"{% endif %}>
+
+                <label>Key file (optional — JSON or n=/e=/d= lines; overrides hidden fields where present):</label>
+                <input type="file" name="key_file" accept=".txt,.json,.key,text/plain,application/json">
 
                 <label>Action:</label>
                 <select name="action">
@@ -57,9 +66,42 @@
                     <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
                 </select>
 
+                <label>Output:</label>
+                <div class="toggle-options">
+                    <label><input type="radio" name="output_mode" value="textbox" checked> Show in text box</label>
+                    <label><input type="radio" name="output_mode" value="file"> Download as file</label>
+                </div>
+                <label>Download filename (optional):</label>
+                <input type="text" name="export_name" placeholder="e.g. rsa_cipher.txt">
+
                 <button type="submit" name="generate" value="1">Generate new key pair</button>
                 <button type="submit">Run encrypt / decrypt</button>
             </form>
+
+            <script>
+                (function () {
+                    const rMsg = document.querySelector('input[name="input_type"][value="message"]');
+                    const rFile = document.querySelector('input[name="input_type"][value="file"]');
+                    const ta = document.getElementById('rsa-message');
+                    const fi = document.getElementById('rsa-file');
+                    function t() {
+                        if (rMsg.checked) {
+                            ta.style.display = 'block';
+                            fi.style.display = 'none';
+                            ta.disabled = false;
+                            fi.disabled = true;
+                        } else {
+                            ta.style.display = 'none';
+                            fi.style.display = 'block';
+                            ta.disabled = true;
+                            fi.disabled = false;
+                        }
+                    }
+                    rMsg.addEventListener('change', t);
+                    rFile.addEventListener('change', t);
+                    t();
+                })();
+            </script>
 
             {% if rsa_error %}
                 <div class="result" style="border-left-color: #a33;">
@@ -68,10 +110,19 @@
                 </div>
             {% endif %}
 
-            {% if answer is not none and answer != '' %}
+            {% if answer is not none %}
                 <div class="result">
                     <h3>Output</h3>
-                    <p class="rsa-output">{{ answer }}</p>
+                    {% if show_textbox %}
+                        <textarea class="result-text" readonly>{{ answer }}</textarea>
+                    {% else %}
+                        <p>{{ answer }}</p>
+                    {% endif %}
+                    {% if download_data %}
+                        <p class="download-row">
+                            <a href="data:application/octet-stream;base64,{{ download_data }}" download="{{ download_filename or 'rsa_output.bin' }}">Download {{ download_filename or 'output' }}</a>
+                        </p>
+                    {% endif %}
                 </div>
             {% endif %}
 

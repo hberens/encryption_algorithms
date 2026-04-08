@@ -1,6 +1,12 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>Comp Sec Project</h1>
-<p>project details...</p>
+<h1>Computer security — cipher lab</h1>
+<p>This project implements several ciphers in a web interface. You can type a message or <strong>upload a file</strong> (for 3DES, AES, and RSA), <strong>import keys from a file</strong>, and choose whether to <strong>show the result on the page</strong> or <strong>download it as a file</strong>. Vigenère accepts <strong>text only</strong> for the message (as required for that cipher).</p>
+<ul>
+    <li><a href="/vigenere">Vigenère</a> — polyalphabetic text cipher.</li>
+    <li><a href="/des">3DES</a> — triple DES on binary data.</li>
+    <li><a href="/aes">AES</a> — AES-CBC (pure Python core).</li>
+    <li><a href="/rsa">RSA</a> — textbook RSA demo (small keys).</li>
+</ul>
 {% endblock %}
