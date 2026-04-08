@@ -1,7 +1,11 @@
 import math
 import secrets
 import string
+from typing import Optional
+
 import des
+
+from aes_kak import aes_cipher
 
 
 def vigenere(message, key, action):
@@ -121,10 +125,6 @@ def des3(msg, k1, k2, k3, action):
     return des.unpad(b''.join(bytes(int(datum[i:i+8], 2) for i in range(0, 64, 8)) for datum in data))
 
 
-def aes():
-  pass
-
-
 # functions for rsa prime numebers
 def _is_prime(n):
   if n < 2:
@@ -177,10 +177,10 @@ def _rsa_generate_keys():
   return {"p": p, "q": q, "n": n, "phi": phi, "e": e, "d": d}
 
 
-# encrypt the message- C ≡ M^e (mod n)
-def _rsa_encrypt_text(plaintext, e, n):
+# encrypt: C ≡ M^e (mod n), one block per message byte (text or arbitrary bytes)
+def _rsa_encrypt_bytes(data: bytes, e, n):
   out = []
-  for b in plaintext.encode("utf-8"):
+  for b in data:
     if b >= n:
       raise ValueError(
         "This message needs a larger modulus n. Click “Generate key pair” again."
@@ -189,11 +189,11 @@ def _rsa_encrypt_text(plaintext, e, n):
   return ",".join(out)
 
 
-# decrypt the message- M ≡ C^d (mod n)
-def _rsa_decrypt_text(ciphertext_str, d, n):
+# decrypt: M ≡ C^d (mod n) → raw bytes (UTF-8 text or any binary you encrypted)
+def _rsa_decrypt_bytes(ciphertext_str, d, n) -> bytes:
   raw = ciphertext_str.replace("\n", " ").strip()
   if not raw:
-    return ""
+    return b""
   parts = [p.strip() for p in raw.split(",") if p.strip()]
   try:
     blocks = [int(x) for x in parts]
@@ -208,7 +208,7 @@ def _rsa_decrypt_text(ciphertext_str, d, n):
     if not (0 <= m < 256):
       raise ValueError("Decryption produced invalid bytes; check ciphertext and keys.")
     bs.append(m)
-  return bytes(bs).decode("utf-8")
+  return bytes(bs)
 
 
 # format the keys for display
@@ -258,13 +258,18 @@ def rsa(
   regenerate=False,
 ):
 
-  message = message or ""
+  if message is None:
+    message = ""
+  elif not isinstance(message, bytes):
+    message = message or ""
+
   action = (action or "encrypt").lower()
 
   if regenerate:
     keys = _rsa_generate_keys()
     return {
       "text": "",
+      "raw_out": None,
       "steps": _rsa_summary_steps(keys),
       "keys": keys,
       "error": None,
@@ -274,6 +279,7 @@ def rsa(
     if action == "decrypt":
       return {
         "text": "",
+        "raw_out": None,
         "steps": [
           {
             "type": "note",
@@ -296,6 +302,7 @@ def rsa(
     except ValueError:
       return {
         "text": "",
+        "raw_out": None,
         "steps": [],
         "keys": None,
         "error": "Key fields must be integers.",
@@ -305,27 +312,36 @@ def rsa(
   steps = []
   err = None
   out_text = ""
+  raw_out: Optional[bytes] = None
 
   try:
     if action == "encrypt":
       if keys["e"] is None:
         return {
           "text": "",
+          "raw_out": None,
           "steps": [],
           "keys": keys,
           "error": "Public exponent e is missing.",
         }
-      out_text = _rsa_encrypt_text(message, keys["e"], keys["n"])
+      if isinstance(message, bytes):
+        data = message
+      else:
+        data = (message or "").encode("utf-8")
+      out_text = _rsa_encrypt_bytes(data, keys["e"], keys["n"])
       steps = _rsa_summary_steps(_keys_for_display(keys))
     else:
       if keys["d"] is None:
         return {
           "text": "",
+          "raw_out": None,
           "steps": [],
           "keys": keys,
           "error": "Private exponent d is required for decryption.",
         }
-      out_text = _rsa_decrypt_text(message, keys["d"], keys["n"])
+      msg_str = message.decode("utf-8", errors="replace") if isinstance(message, bytes) else (message or "")
+      raw_out = _rsa_decrypt_bytes(msg_str, keys["d"], keys["n"])
+      out_text = raw_out.decode("utf-8", errors="replace")
       steps = _rsa_summary_steps(_keys_for_display(keys))
   except ValueError as exc:
     err = str(exc)
@@ -335,7 +351,7 @@ def rsa(
       else []
     )
 
-  return {"text": out_text, "steps": steps, "keys": keys, "error": err}
+  return {"text": out_text, "raw_out": raw_out, "steps": steps, "keys": keys, "error": err}
 
 
 if __name__ == "__main__":

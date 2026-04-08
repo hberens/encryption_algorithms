@@ -1,6 +1,108 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>AES</h1>
-<p>In Progress</p>
+    <div class="container">
+        <div class="left">
+            <h2>AES description</h2>
+            <p><em>Structure matches Avi Kak, Lecture 8: AES (<cite>Computer and Network Security</cite>).</em></p>
+            <p><strong>Type:</strong> Symmetric block cipher (substitution–permutation network; byte-oriented).</p>
+            <p><strong>Strength:</strong> Strong — no practical attacks on the full cipher are known today for proper keys and modes.</p>
+            <p><strong>How it works (Kak §8.1–8.4):</strong> AES uses <strong>128-bit blocks</strong> arranged as a <strong>4×4 state</strong> of bytes (first four plaintext bytes fill the first <em>column</em>, then the next four the second column, etc.). Before rounds, the state is XORed with the first four words of the <strong>key schedule</strong>. Each encryption round (except the last) applies, in order: <strong>SubBytes</strong> (byte substitution via S-box / multiplicative inverse in GF(2⁸) plus affine map, §8.5), <strong>ShiftRows</strong> (row 0 fixed; rows 1–3 cyclically shifted left by 1, 2, 3 bytes, §8.6), <strong>MixColumns</strong> (mix each column in GF(2⁸) using the 02/03 matrix, §8.7), and <strong>AddRoundKey</strong> (XOR four schedule words). The <strong>last</strong> encryption round omits MixColumns. <strong>Decryption</strong> uses the inverse steps in the order Kak gives (§8.3): InvShiftRows, InvSubBytes, AddRoundKey, InvMixColumns, with the last decryption round omitting InvMixColumns.</p>
+            <p><strong>Rounds:</strong> <strong>10</strong> for 128-bit keys, <strong>12</strong> for 192-bit, <strong>14</strong> for 256-bit (§8.1). <strong>Key expansion</strong> extends the key into round keys (§8.8); for 256-bit keys an extra <strong>SubWord</strong> step applies at word indices 4 mod 8 (Kak’s <code>gen_key_schedule_256</code>).</p>
+            <p><strong>Key / block size:</strong> Key <strong>128, 192, or 256 bits</strong>; block size always <strong>128 bits</strong>.</p>
+            <p><strong>Use case:</strong> Wi‑Fi, file encryption, VPNs, TLS, government/military systems.</p>
+            <p><strong>This app:</strong> The cipher core is pure Python (no <code>Crypto</code> library). The web UI uses <strong>AES-CBC</strong> with <strong>PKCS#7</strong> padding; a random <strong>16-byte IV</strong> is prepended to the ciphertext (first 32 hex digits).</p>
+
+            <h3>Directions</h3>
+            <ul>
+                <li><strong>Text:</strong> Encrypt accepts UTF-8 plaintext. Decrypt expects <strong>hex</strong> (IV + ciphertext from encrypt).</li>
+                <li><strong>Key:</strong> Hex string length must match key size: 32 digits (128-bit), 48 (192-bit), 64 (256-bit).</li>
+                <li><strong>File:</strong> Raw bytes in and out; use the download link after processing.</li>
+            </ul>
+        </div>
+
+        <div class="right">
+            <form method="POST" enctype="multipart/form-data">
+                <label>Message or ciphertext:</label>
+                <div class="toggle-options">
+                    <label><input type="radio" name="input_type" value="message" {% if input_type == 'message' %}checked{% endif %}> Use text</label>
+                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Use uploaded file</label>
+                </div>
+
+                <textarea id="message-input" name="message" rows="6" {% if input_type != 'message' %}style="display:none;"{% endif %}>{{ message }}</textarea>
+                <input id="file-input" {% if input_type != 'file' %}style="display:none;"{% endif %} type="file" name="file" accept="*/*">
+
+                <label>Key size:</label>
+                <select name="key_bits" id="key-bits">
+                    <option value="128" {% if key_bits == 128 %}selected{% endif %}>128-bit (32 hex digits)</option>
+                    <option value="192" {% if key_bits == 192 %}selected{% endif %}>192-bit (48 hex digits)</option>
+                    <option value="256" {% if key_bits == 256 %}selected{% endif %}>256-bit (64 hex digits)</option>
+                </select>
+
+                <label>Key (hex):</label>
+                <input type="text" name="key" id="aes-key" required value="{{ key_hex }}" placeholder="e.g. 32 / 48 / 64 hex characters" autocomplete="off" spellcheck="false">
+
+                <label>Action:</label>
+                <select name="action" required>
+                    <option value="encrypt" {% if action == 'encrypt' %}selected{% endif %}>Encrypt</option>
+                    <option value="decrypt" {% if action == 'decrypt' %}selected{% endif %}>Decrypt</option>
+                </select>
+
+                <button type="submit">Submit</button>
+            </form>
+
+            <script>
+                const messageRadio = document.querySelector('input[name="input_type"][value="message"]');
+                const fileRadio = document.querySelector('input[name="input_type"][value="file"]');
+                const messageInput = document.getElementById('message-input');
+                const fileInput = document.getElementById('file-input');
+                const keyBits = document.getElementById('key-bits');
+                const aesKey = document.getElementById('aes-key');
+
+                function updateInputToggle() {
+                    if (messageRadio.checked) {
+                        messageInput.style.display = 'block';
+                        fileInput.style.display = 'none';
+                        messageInput.disabled = false;
+                        fileInput.disabled = true;
+                    } else {
+                        messageInput.style.display = 'none';
+                        fileInput.style.display = 'block';
+                        messageInput.disabled = true;
+                        fileInput.disabled = false;
+                    }
+                }
+
+                function updateKeyPlaceholder() {
+                    const n = { '128': 32, '192': 48, '256': 64 }[keyBits.value] || 32;
+                    aesKey.placeholder = 'Exactly ' + n + ' hexadecimal digits';
+                    aesKey.maxLength = n;
+                }
+
+                messageRadio.addEventListener('change', updateInputToggle);
+                fileRadio.addEventListener('change', updateInputToggle);
+                keyBits.addEventListener('change', updateKeyPlaceholder);
+                updateInputToggle();
+                updateKeyPlaceholder();
+            </script>
+
+            {% if answer %}
+                <div class="result">
+                    <h3>Result:</h3>
+                    {% if download_data %}
+                        <p>{{ answer }}</p>
+                        <a href="data:application/octet-stream;base64,{{ download_data }}" download="{{ filename or 'output.bin' }}">Download {{ filename or 'output' }}</a>
+                    {% else %}
+                        <p class="rsa-output">{{ answer }}</p>
+                    {% endif %}
+                </div>
+                {% if elapsed_time is not none %}
+                <div class="result">
+                    <h3>Time:</h3>
+                    <p>{{ elapsed_time }} ns</p>
+                </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
 {% endblock %}

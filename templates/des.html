@@ -4,8 +4,14 @@
     <div class="container">
         <!-- Left column: explanation -->
         <div class="left">
-            <h2>3DES</h2>
-            <h3>Directions For 3DES Encryptor/Decryptor</h3>
+            <h2>3DES description</h2>
+            <p><strong>Type:</strong> Symmetric block cipher.</p>
+            <p><strong>Strength:</strong> Moderate — deprecated by NIST.</p>
+            <p><strong>How it works:</strong> DES divides data into <strong>64-bit blocks</strong> and applies 16 rounds of permutation and substitution using a <strong>56-bit</strong> effective key. Triple DES runs this process three times in an <strong>Encrypt → Decrypt → Encrypt</strong> sequence (E–D–E). Three separate keys (<code>K1</code>, <code>K2</code>, <code>K3</code>) can be used for maximum security. The decrypt step in the middle ensures backward compatibility with plain DES when <code>K1 = K2 = K3</code>. Main weakness: the 64-bit block size makes high-volume traffic vulnerable to <strong>SWEET32</strong>-style birthday attacks.</p>
+            <p><strong>Key / block size:</strong> Keying options are often summarized as <strong>112–168 bits</strong> of effective strength (two-key vs. three independent DES keys); some legacy configurations also use <strong>128-bit</strong> key packing. The <strong>block size</strong> remains <strong>64 bits</strong> (DES block).</p>
+            <p><strong>Use case:</strong> Legacy banking and financial systems.</p>
+
+            <h3>Directions for 3DES encryptor/decryptor</h3>
             <ul>
                 <li>For text input, only hex will be accepted for encrypted texts while ASCII will be accepted for plaintext</li>
                 <li>Keys are expected to be 16 character hex numbers (8 bytes each)</li>
