@@ -9,6 +9,7 @@ import re
 def read_upload_text(file_storage, max_bytes: int = 16 * 1024 * 1024) -> str | None:
   if file_storage is None or not file_storage.filename:
     return None
+  # read one extra byte so we can reliably detect oversized uploads
   raw = file_storage.read(max_bytes + 1)
   if len(raw) > max_bytes:
     raise ValueError(f"Key file too large (max {max_bytes} bytes).")
@@ -16,6 +17,7 @@ def read_upload_text(file_storage, max_bytes: int = 16 * 1024 * 1024) -> str | N
 
 
 def merge_key_field(form_value: str, file_text: str | None) -> str:
+  # uploaded content wins over whatever is typed in the form
   if file_text:
     return file_text
   return form_value or ""
@@ -28,6 +30,7 @@ def parse_rsa_key_file(content: str) -> dict[str, str]:
   if not content:
     return out
   if content.startswith("{"):
+    # json format is easiest for full key bundles
     data = json.loads(content)
     for k in ("n", "e", "d", "p", "q", "phi"):
       if k in data and data[k] is not None:
@@ -37,6 +40,7 @@ def parse_rsa_key_file(content: str) -> dict[str, str]:
     line = line.strip()
     if not line or line.startswith("#"):
       continue
+    # also accept key:value in addition to key=value
     m = re.match(r"^(\w+)\s*[:=]\s*(.+)$", line)
     if m:
       key, val = m.group(1).lower(), m.group(2).strip().strip('"').strip("'")

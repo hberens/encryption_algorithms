@@ -142,6 +142,7 @@ def _is_prime(n):
 
 def _random_prime(low, high):
   while True:
+    # sample in range and nudge to odd before primality test
     x = secrets.randbelow(high - low) + low
     if x % 2 == 0:
       x += 1
@@ -166,6 +167,7 @@ def _rsa_generate_keys():
 
   phi = (p - 1) * (q - 1)
   e = None
+  # try common public exponents in preferred order
   for candidate in (65537, 257, 17, 5, 3):
     if math.gcd(candidate, phi) == 1:
       e = candidate
@@ -204,6 +206,7 @@ def _rsa_decrypt_bytes(ciphertext_str, d, n) -> bytes:
 
   bs = []
   for c in blocks:
+    # each block maps back to one original byte in this demo scheme
     m = pow(c, d, n)
     if not (0 <= m < 256):
       raise ValueError("Decryption produced invalid bytes; check ciphertext and keys.")
@@ -266,6 +269,7 @@ def rsa(
   action = (action or "encrypt").lower()
 
   if regenerate:
+    # this path only refreshes keys and explanatory steps
     keys = _rsa_generate_keys()
     return {
       "text": "",
@@ -293,6 +297,7 @@ def rsa(
     keys = _rsa_generate_keys()
   else:
     try:
+      # accept partial key bundles; missing parts are validated per action
       n = int(str(n_str).strip())
       e = int(str(e_str).strip()) if e_str and str(e_str).strip() else None
       d = int(str(d_str).strip()) if d_str and str(d_str).strip() else None
@@ -327,6 +332,7 @@ def rsa(
       if isinstance(message, bytes):
         data = message
       else:
+        # message mode uses utf-8 text; file mode already provides bytes
         data = (message or "").encode("utf-8")
       out_text = _rsa_encrypt_bytes(data, keys["e"], keys["n"])
       steps = _rsa_summary_steps(_keys_for_display(keys))

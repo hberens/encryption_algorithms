@@ -22,6 +22,7 @@ def _xtime(x: int) -> int:
 
 
 def _gf_mul(a: int, b: int) -> int:
+  # classic shift-and-add multiply in gf(2^8)
   p = 0
   for _ in range(8):
     if b & 1:
@@ -91,6 +92,7 @@ for _i, _v in enumerate(_SBOX):
 
 def _bytes_to_state(block: bytes) -> list[list[int]]:
   """Kak layout: column j holds bytes block[4*j : 4*j+4] down rows 0..3."""
+  # keep state in column-major order to match aes spec
   s = [[0] * 4 for _ in range(4)]
   for r in range(4):
     for c in range(4):
@@ -169,6 +171,7 @@ def _sub_word(w: bytes) -> bytes:
 
 
 def _key_expansion(key: bytes) -> list[bytes]:
+  # derive all round keys once so block ops stay simple
   nk = len(key) // 4
   nr = {4: 10, 6: 12, 8: 14}[nk]
   n_words = 4 * (nr + 1)
@@ -179,6 +182,7 @@ def _key_expansion(key: bytes) -> list[bytes]:
   for i in range(nk, n_words):
     temp = w[i - 1]
     if i % nk == 0:
+      # every nk words: rotate, sub, then mix in round constant
       temp = _xor_word(_sub_word(_rot_word(temp)), bytes([rcon, 0, 0, 0]))
       rcon = _xtime(rcon)
     elif nk > 6 and i % nk == 4:
@@ -241,6 +245,7 @@ def _cbc_encrypt(plaintext: bytes, key: bytes) -> bytes:
   padded = _pkcs7_pad(plaintext)
   for i in range(0, len(padded), _BLOCK):
     chunk = padded[i : i + _BLOCK]
+    # chain with previous ciphertext block (or iv for first block)
     x = bytes(a ^ b for a, b in zip(chunk, prev))
     enc = _aes_encrypt_block(x, rks)
     out.extend(enc)
@@ -272,7 +277,7 @@ def aes_cipher(data: bytes, key_hex: str, key_bits: int, action: str) -> bytes:
   if key_bits not in (128, 192, 256):
     raise ValueError("Key size must be 128, 192, or 256 bits.")
 
-  # Typed or file-imported hex: drop all whitespace (spaces, newlines, tabs).
+  # allow pasted keys with spaces or line breaks
   key_hex = re.sub(r"\s+", "", key_hex or "")
   key_len = key_bits // 8
   expected_hex = key_len * 2

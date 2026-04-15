@@ -24,6 +24,7 @@ def _safe_export_name(name: str, fallback: str) -> str:
   name = (name or "").strip()
   if not name:
     return fallback
+  # keep filenames portable and avoid odd shell/path chars
   name = _SAFE_NAME.sub("_", name)
   return (name[:120] or fallback)
 
@@ -135,6 +136,7 @@ def rsa_page():
     phi_f = request.form.get("phi", "")
     kf = read_upload_text(request.files.get("key_file"))
     if kf:
+      # file values override form fields when both are provided
       parsed = parse_rsa_key_file(kf)
       n_f = parsed.get("n", n_f)
       e_f = parsed.get("e", e_f)
@@ -151,6 +153,7 @@ def rsa_page():
         if action == "encrypt":
           msg_arg = rawf
         else:
+          # ciphertext input is text here (comma-separated numbers)
           msg_arg = rawf.decode("utf-8", errors="replace")
       else:
         msg_arg = b"" if action == "encrypt" else ""
@@ -185,6 +188,7 @@ def rsa_page():
       answer = None
       show_textbox = True
     elif regenerate:
+      # key generation is metadata only, no output payload to show
       answer = None
       show_textbox = True
     else:
@@ -261,6 +265,7 @@ def des_page():
         msg = message.encode()
       else:
         try:
+          # textarea decrypt mode expects hex-encoded ciphertext
           msg = bytes.fromhex(message.replace(" ", "").replace("\n", ""))
         except ValueError:
           err = "Ciphertext must be valid hexadecimal."
@@ -291,6 +296,7 @@ def des_page():
         show_textbox = True
       elif isinstance(answer, bytes):
         if action == "encrypt":
+          # show hex in ui but download raw bytes to preserve exact data
           text_for_box = answer.hex()
           default_fn = (
             (uploaded_file.filename + ".enc")
@@ -402,6 +408,7 @@ def aes_page():
         msg = message.encode("utf-8")
       else:
         try:
+          # allow users to paste spaced or multiline hex
           hex_clean = message.replace(" ", "").replace("\n", "")
           msg = bytes.fromhex(hex_clean)
         except ValueError:
