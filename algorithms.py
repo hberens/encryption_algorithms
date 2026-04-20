@@ -150,37 +150,61 @@ def _random_prime(low, high):
       return x
 
 
-# generate rsa keys- pick primes p and q; n = p×q; φ(n) = (p−1)(q−1); choose e coprime to φ(n); choose d so that e×d ≡ 1 (mod φ(n)).
+def _rsa_choose_distinct_primes(low: int = 101, high: int = 600) -> tuple[int, int]:
+  # keep sampling until we get two different primes
+  while True:
+    p = _random_prime(low, high)
+    q = _random_prime(low, high)
+    if p != q:
+      return p, q
+
+
+def _rsa_compute_phi(p: int, q: int) -> int:
+  # euler totient for n = p*q when p and q are prime
+  return (p - 1) * (q - 1)
+
+
+def _rsa_choose_public_exponent(tot_n: int, max_tries: int = 2048) -> int:
+  # choose random e such that 1 < e < tot_n and gcd(e, tot_n) = 1
+  for _ in range(max_tries):
+    cand = secrets.randbelow(tot_n - 2) + 2
+    if math.gcd(cand, tot_n) == 1:
+      return cand
+  raise RuntimeError("Could not find a suitable public exponent e.")
+
+
+def _rsa_generate_keys_from_primes(p: int, q: int) -> dict:
+  if p == q:
+    raise ValueError("p and q must be distinct primes.")
+  if not _is_prime(p) or not _is_prime(q):
+    raise ValueError("p and q must both be prime.")
+  n = p * q
+  if n <= 255:
+    raise ValueError("p*q must be greater than 255 for this byte-wise RSA demo.")
+  phi = _rsa_compute_phi(p, q)
+  e = _rsa_choose_public_exponent(phi)
+  d = pow(e, -1, phi)
+  return {"p": p, "q": q, "n": n, "phi": phi, "e": e, "d": d}
+
+
+# generate rsa keys- pick p,q; n=p*q; phi(n)=(p−1)(q−1); choose e coprime to phi(n); compute d so e*d ≡ 1 (mod phi(n)).
 def _rsa_generate_keys():
   """
   Demo-sized keys: n large enough that each byte (0–255) is a valid block (n > 255).
   Production RSA uses 2048–4096 bit moduli; this is for learning only.
   """
   while True:
-    p = _random_prime(101, 600)
-    q = _random_prime(101, 600)
-    if p == q:
+    p, q = _rsa_choose_distinct_primes(101, 600)
+    try:
+      # centralize key math + validation in one helper
+      return _rsa_generate_keys_from_primes(p, q)
+    except ValueError:
       continue
-    n = p * q
-    if n > 255:
-      break
-
-  phi = (p - 1) * (q - 1)
-  e = None
-  # try common public exponents in preferred order
-  for candidate in (65537, 257, 17, 5, 3):
-    if math.gcd(candidate, phi) == 1:
-      e = candidate
-      break
-  if e is None:
-    raise RuntimeError("Could not find a suitable public exponent e.")
-
-  d = pow(e, -1, phi)
-  return {"p": p, "q": q, "n": n, "phi": phi, "e": e, "d": d}
 
 
 # encrypt: C ≡ M^e (mod n), one block per message byte (text or arbitrary bytes)
 def _rsa_encrypt_bytes(data: bytes, e, n):
+  # encrypt one byte at a time for this teaching/demo variant
   out = []
   for b in data:
     if b >= n:
@@ -193,6 +217,7 @@ def _rsa_encrypt_bytes(data: bytes, e, n):
 
 # decrypt: M ≡ C^d (mod n) → raw bytes (UTF-8 text or any binary you encrypted)
 def _rsa_decrypt_bytes(ciphertext_str, d, n) -> bytes:
+  # parse the comma-separated integer blocks from the ui
   raw = ciphertext_str.replace("\n", " ").strip()
   if not raw:
     return b""
@@ -234,14 +259,18 @@ def _rsa_summary_steps(keys):
       "title": "RSA — asymmetric cipher",
       "lines": [
         "Type: asymmetric — public key (e, n) encrypts; private key (d, n) decrypts.",
-        "Key generation: pick primes p and q; n = p×q; φ(n) = (p−1)(q−1); choose e coprime "
-        "to φ(n); choose d so that e×d ≡ 1 (mod φ(n)).",
-        "Encryption: C ≡ M^e (mod n). Decryption: M ≡ C^d (mod n).",
         "Strength: factoring n into p and q is believed infeasible for large n. This page uses "
-        "small primes for speed; TLS and similar systems use 2048–4096 bit keys.",
-        "Uses: TLS/SSL, digital signatures, key exchange.",
+        "small primes for speed.",
+        "Key generation step 1: choose two distinct primes p and q.",
+        "Key generation step 2: compute modulus n = p×q.",
+        "Key generation step 3: compute Euler totient φ(n) = (p−1)(q−1).",
+        "Key generation step 4: choose e so that 1 < e < φ(n) and gcd(e, φ(n)) = 1.",
+        "Key generation step 5: compute d as the modular inverse of e modulo φ(n), so e×d ≡ 1 (mod φ(n)).",
+        "Public key is (n, e). Private key is (n, d).",
+        "Encryption: C ≡ M^e (mod n). Decryption: M ≡ C^d (mod n).",
         f"Current demo values — p = {keys['p']}, q = {keys['q']}, n = {keys['n']}, "
-        f"φ(n) = {keys['phi']}, e = {keys['e']}, d = {keys['d']} (in practice d must stay secret).",
+        f"φ(n) = {keys['phi']}, e = {keys['e']}, d = {keys['d']} "
+        "(in practice d must stay secret).",
       ],
       "example": None,
     }
@@ -270,7 +299,21 @@ def rsa(
 
   if regenerate:
     # this path only refreshes keys and explanatory steps
-    keys = _rsa_generate_keys()
+    if p_str and str(p_str).strip() and q_str and str(q_str).strip():
+      try:
+        p_in = int(str(p_str).strip())
+        q_in = int(str(q_str).strip())
+        keys = _rsa_generate_keys_from_primes(p_in, q_in)
+      except ValueError as exc:
+        return {
+          "text": "",
+          "raw_out": None,
+          "steps": [],
+          "keys": None,
+          "error": str(exc),
+        }
+    else:
+      keys = _rsa_generate_keys()
     return {
       "text": "",
       "raw_out": None,
@@ -313,6 +356,75 @@ def rsa(
         "error": "Key fields must be integers.",
       }
     keys = {"n": n, "e": e, "d": d, "p": p, "q": q, "phi": phi}
+
+  # validate key relationships when enough information is available
+  if keys["n"] is not None and keys["n"] <= 1:
+    return {
+      "text": "",
+      "raw_out": None,
+      "steps": [],
+      "keys": keys,
+      "error": "Modulus n must be greater than 1.",
+    }
+  if keys.get("p") is not None and keys.get("q") is not None and keys["p"] * keys["q"] != keys["n"]:
+    return {
+      "text": "",
+      "raw_out": None,
+      "steps": [],
+      "keys": keys,
+      "error": "Key fields are inconsistent: n must equal p*q.",
+    }
+
+  phi_eff = keys.get("phi")
+  if keys.get("p") is not None and keys.get("q") is not None:
+    phi_calc = (keys["p"] - 1) * (keys["q"] - 1)
+    if phi_eff is None:
+      phi_eff = phi_calc
+  if keys.get("phi") is not None and phi_eff is not None and keys["phi"] != phi_eff:
+    return {
+      "text": "",
+      "raw_out": None,
+      "steps": [],
+      "keys": keys,
+      "error": "Key fields are inconsistent: phi(n) does not match p and q.",
+    }
+
+  if keys.get("e") is not None:
+    if keys["e"] <= 1:
+      return {
+        "text": "",
+        "raw_out": None,
+        "steps": [],
+        "keys": keys,
+        "error": "Public exponent e must be greater than 1.",
+      }
+    if phi_eff is not None:
+      if keys["e"] >= phi_eff:
+        return {
+          "text": "",
+          "raw_out": None,
+          "steps": [],
+          "keys": keys,
+          "error": "Public exponent e must satisfy 1 < e < phi(n).",
+        }
+      if math.gcd(keys["e"], phi_eff) != 1:
+        return {
+          "text": "",
+          "raw_out": None,
+          "steps": [],
+          "keys": keys,
+          "error": "Public exponent e must be coprime with phi(n).",
+        }
+
+  if keys.get("d") is not None and phi_eff is not None and keys.get("e") is not None:
+    if (keys["d"] * keys["e"]) % phi_eff != 1:
+      return {
+        "text": "",
+        "raw_out": None,
+        "steps": [],
+        "keys": keys,
+        "error": "Private exponent d must satisfy (d*e) mod phi(n) = 1.",
+      }
 
   steps = []
   err = None

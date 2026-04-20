@@ -35,17 +35,17 @@
         <div class="right">
             <form method="POST" enctype="multipart/form-data">
                 {% if rsa_keys %}
-                    <input type="hidden" name="n" value="{{ rsa_keys.n }}">
-                    <input type="hidden" name="e" value="{{ rsa_keys.e }}">
-                    <input type="hidden" name="d" value="{{ rsa_keys.d }}">
+                    <input type="hidden" name="n_saved" value="{{ rsa_keys.n }}">
+                    <input type="hidden" name="e_saved" value="{{ rsa_keys.e }}">
+                    <input type="hidden" name="d_saved" value="{{ rsa_keys.d }}">
                     {% if rsa_keys.p is not none %}
-                    <input type="hidden" name="p" value="{{ rsa_keys.p }}">
+                    <input type="hidden" name="p_saved" value="{{ rsa_keys.p }}">
                     {% endif %}
                     {% if rsa_keys.q is not none %}
-                    <input type="hidden" name="q" value="{{ rsa_keys.q }}">
+                    <input type="hidden" name="q_saved" value="{{ rsa_keys.q }}">
                     {% endif %}
                     {% if rsa_keys.phi is not none %}
-                    <input type="hidden" name="phi" value="{{ rsa_keys.phi }}">
+                    <input type="hidden" name="phi_saved" value="{{ rsa_keys.phi }}">
                     {% endif %}
                 {% endif %}
 
@@ -57,8 +57,15 @@
                 <textarea id="rsa-message" name="message" rows="5" {% if input_type != 'message' %}style="display:none;"{% endif %} placeholder="Encrypt: text or use file. Decrypt: comma-separated numbers (or upload .txt).">{{ message }}</textarea>
                 <input id="rsa-file" type="file" name="file" accept="*/*" {% if input_type != 'file' %}style="display:none;"{% endif %}>
 
-                <label>Key file (optional — JSON or n=/e=/d= lines; overrides hidden fields where present):</label>
+                <label>Optional key file (JSON or lines like n=..., e=..., d=...). If provided, values in this file replace the current saved key values for matching fields.</label>
                 <input type="file" name="key_file" accept=".txt,.json,.key,text/plain,application/json">
+
+                <label>Key generation mode:</label>
+                <p>Leave blank for random primes, or set both values to generate keys from your chosen primes.</p>
+                <label>Prime p (optional):</label>
+                <input type="text" name="p_input" value="{{ p_input }}" placeholder="e.g. 499">
+                <label>Prime q (optional):</label>
+                <input type="text" name="q_input" value="{{ q_input }}" placeholder="e.g. 283">
 
                 <label>Action:</label>
                 <select name="action">
@@ -74,7 +81,7 @@
                 <label>Download filename (optional):</label>
                 <input type="text" name="export_name" placeholder="e.g. rsa_cipher.txt">
 
-                <button type="submit" name="generate" value="1">Generate new key pair</button>
+                <button type="submit" name="generate" value="1">Generate key pair</button>
                 <button type="submit">Run encrypt / decrypt</button>
             </form>
 

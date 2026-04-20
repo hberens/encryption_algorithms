@@ -24,6 +24,7 @@ _BENCHMARK_CSV = os.path.join(os.path.dirname(__file__), "benchmark_results.csv"
 
 
 def _input_size_bytes(data: bytes | str | None) -> int:
+  # normalize text/bytes inputs so benchmark size is comparable
   if data is None:
     return 0
   if isinstance(data, bytes):
@@ -32,6 +33,7 @@ def _input_size_bytes(data: bytes | str | None) -> int:
 
 
 def _log_benchmark(algorithm: str, action: str, input_type: str, input_size_bytes: int, elapsed_ns: int | None):
+  # keep benchmark logging best-effort and non-blocking for user requests
   if elapsed_ns is None:
     return
   row = {
@@ -156,6 +158,8 @@ def rsa_page():
   message = ""
   action = "encrypt"
   input_type = "message"  # message | file
+  p_input = ""
+  q_input = ""
   answer = None
   elapsed_ns = None
   benchmark_input_size = None
@@ -173,12 +177,14 @@ def rsa_page():
     output_mode = request.form.get("output_mode", "textbox")
     export_name = _safe_export_name(request.form.get("export_name", ""), "rsa_output")
 
-    n_f = request.form.get("n", "")
-    e_f = request.form.get("e", "")
-    d_f = request.form.get("d", "")
-    p_f = request.form.get("p", "")
-    q_f = request.form.get("q", "")
-    phi_f = request.form.get("phi", "")
+    n_f = request.form.get("n_saved", "")
+    e_f = request.form.get("e_saved", "")
+    d_f = request.form.get("d_saved", "")
+    p_f = request.form.get("p_saved", "")
+    q_f = request.form.get("q_saved", "")
+    phi_f = request.form.get("phi_saved", "")
+    p_input = request.form.get("p_input", "").strip()
+    q_input = request.form.get("q_input", "").strip()
     kf = read_upload_text(request.files.get("key_file"))
     if kf:
       # file values override form fields when both are provided
@@ -189,6 +195,14 @@ def rsa_page():
       p_f = parsed.get("p", p_f)
       q_f = parsed.get("q", q_f)
       phi_f = parsed.get("phi", phi_f)
+    elif regenerate:
+      # generation mode: use user primes only when both are explicitly provided
+      if p_input and q_input:
+        p_f = p_input
+        q_f = q_input
+      else:
+        p_f = ""
+        q_f = ""
 
     msg_arg: str | bytes = ""
     if input_type == "file":
@@ -228,17 +242,23 @@ def rsa_page():
     rsa_error = out["error"]
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
-    benchmark_input_size = _input_size_bytes(msg_arg)
-    _log_benchmark("rsa", action, input_type, benchmark_input_size, elapsed_ns)
 
     if rsa_error:
+      # do not show timing when the operation failed
       answer = None
       show_textbox = True
+      elapsed_ns = None
+      benchmark_input_size = None
     elif regenerate:
       # key generation is metadata only, no output payload to show
       answer = None
       show_textbox = True
+      elapsed_ns = None
+      benchmark_input_size = None
     else:
+      # only successful encrypt/decrypt runs are benchmarked
+      benchmark_input_size = _input_size_bytes(msg_arg)
+      _log_benchmark("rsa", action, input_type, benchmark_input_size, elapsed_ns)
       if action == "encrypt":
         fn = export_name + ".txt" if not export_name.endswith(".txt") else export_name
         b_dl = text_out.encode("utf-8")
@@ -267,6 +287,8 @@ def rsa_page():
     rsa_steps=rsa_steps,
     rsa_keys=rsa_keys,
     rsa_error=rsa_error,
+    p_input=p_input,
+    q_input=q_input,
     show_textbox=show_textbox,
     download_data=download_data,
     download_filename=download_filename,
@@ -340,15 +362,18 @@ def des_page():
         answer = "ERROR: Invalid input"
       end_ns = time.perf_counter_ns()
       elapsed_ns = end_ns - start_ns
-      benchmark_input_size = _input_size_bytes(data_in)
-      _log_benchmark("des", action, input_type, benchmark_input_size, elapsed_ns)
 
       bad = isinstance(answer, str) and (
         answer.startswith("ERROR") or "Improper" in answer
       )
       if bad:
+        # invalid decrypt/parse paths should not report timing
+        elapsed_ns = None
+        benchmark_input_size = None
         show_textbox = True
       elif isinstance(answer, bytes):
+        benchmark_input_size = _input_size_bytes(data_in)
+        _log_benchmark("des", action, input_type, benchmark_input_size, elapsed_ns)
         if action == "encrypt":
           # show hex in ui but download raw bytes to preserve exact data
           text_for_box = answer.hex()
@@ -375,6 +400,8 @@ def des_page():
         download_data = o["download_data"]
         download_filename = o["download_filename"]
       else:
+        benchmark_input_size = _input_size_bytes(data_in)
+        _log_benchmark("des", action, input_type, benchmark_input_size, elapsed_ns)
         text_ans = str(answer)
         dl_bytes = None
         if isinstance(raw, bytes):
@@ -400,6 +427,8 @@ def des_page():
 
     if err:
       answer = f"ERROR: {err}"
+      elapsed_ns = None
+      benchmark_input_size = None
 
   return render_template(
     "des.html",
@@ -509,10 +538,17 @@ def aes_page():
         show_textbox = True
       end_ns = time.perf_counter_ns()
       elapsed_ns = end_ns - start_ns
-      benchmark_input_size = _input_size_bytes(data_in)
-      _log_benchmark("aes", action, input_type, benchmark_input_size, elapsed_ns)
+      if not (isinstance(answer, str) and answer.startswith("ERROR")):
+        benchmark_input_size = _input_size_bytes(data_in)
+        _log_benchmark("aes", action, input_type, benchmark_input_size, elapsed_ns)
+      else:
+        # keep timing hidden on aes validation/decrypt failures
+        elapsed_ns = None
+        benchmark_input_size = None
     else:
       answer = f"ERROR: {err}"
+      elapsed_ns = None
+      benchmark_input_size = None
 
   return render_template(
     "aes.html",
