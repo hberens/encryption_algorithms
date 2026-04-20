@@ -6,12 +6,11 @@
             <h2>RSA description</h2>
             <p><strong>Type:</strong> Asymmetric cipher.</p>
             <p><strong>Strength:</strong> Strong when large keys are used; small keys (like this demo) are easy to break.</p>
-            <p><strong>How it works:</strong> Pick primes <code>p</code> and <code>q</code>; <code>n = p×q</code> and <code>φ(n) = (p−1)(q−1)</code>.
-            Choose public exponent <code>e</code>; private exponent <code>d</code> satisfies <code>e×d ≡ 1 (mod φ(n))</code>.
+            <p><strong>How it works:</strong> Generate a key pair in-app (random primes or chosen <code>p</code>/<code>q</code>), or upload <code>e</code> and <code>d</code> and provide <code>n</code>.
             Encrypt: <code>C ≡ M^e (mod n)</code>. Decrypt: <code>M ≡ C^d (mod n)</code>.
             Security rests on the difficulty of factoring <code>n</code>.</p>
             <p><strong>Key size:</strong> 2048–4096 bits are typical in production. This page uses tiny primes for speed.</p>
-            <p><strong>Files:</strong> You can encrypt/decrypt <strong>any binary file</strong> byte-by-byte. Ciphertext is comma-separated integers (text). Key file: JSON <code>{"n":"…","e":"…","d":"…","p":"…","q":"…","phi":"…"}</code> or lines like <code>n=123</code>.</p>
+            <p><strong>Files:</strong> You can encrypt/decrypt <strong>any binary file</strong> byte-by-byte. Ciphertext is comma-separated integers (text). Key file can provide <code>n</code>, <code>e</code>, and <code>d</code> (JSON or lines like <code>n=...</code>, <code>e=...</code>, <code>d=...</code>).</p>
 
             {% if rsa_steps %}
                 <div class="trace-box">
@@ -57,7 +56,7 @@
                 <textarea id="rsa-message" name="message" rows="5" {% if input_type != 'message' %}style="display:none;"{% endif %} placeholder="Encrypt: text or use file. Decrypt: comma-separated numbers (or upload .txt).">{{ message }}</textarea>
                 <input id="rsa-file" type="file" name="file" accept="*/*" {% if input_type != 'file' %}style="display:none;"{% endif %}>
 
-                <label>Optional key file (JSON or lines like n=..., e=..., d=...). If provided, values in this file replace the current saved key values for matching fields.</label>
+                <label>Optional key file (JSON or lines like n=..., e=..., d=...). If provided, uploaded n/e/d are used.</label>
                 <input type="file" name="key_file" accept=".txt,.json,.key,text/plain,application/json">
 
                 <label>Key generation mode:</label>
@@ -145,7 +144,7 @@
 
             {% if rsa_keys %}
                 <div class="result">
-                    <h3>Current keys (demo)</h3>
+                    <h3>Current keys</h3>
                     <p><code>n</code> = {{ rsa_keys.n }}</p>
                     <p><code>e</code> (public) = {{ rsa_keys.e }}</p>
                     <p><code>d</code> (private — keep secret in real systems) = {{ rsa_keys.d }}</p>

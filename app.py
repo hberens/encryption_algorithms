@@ -187,14 +187,15 @@ def rsa_page():
     q_input = request.form.get("q_input", "").strip()
     kf = read_upload_text(request.files.get("key_file"))
     if kf:
-      # file values override form fields when both are provided
+      # key file may provide direct rsa key values (n/e/d)
       parsed = parse_rsa_key_file(kf)
       n_f = parsed.get("n", n_f)
       e_f = parsed.get("e", e_f)
       d_f = parsed.get("d", d_f)
-      p_f = parsed.get("p", p_f)
-      q_f = parsed.get("q", q_f)
-      phi_f = parsed.get("phi", phi_f)
+      # uploaded key bundles should stand on their own
+      p_f = ""
+      q_f = ""
+      phi_f = ""
     elif regenerate:
       # generation mode: use user primes only when both are explicitly provided
       if p_input and q_input:

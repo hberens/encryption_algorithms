@@ -259,8 +259,6 @@ def _rsa_summary_steps(keys):
       "title": "RSA — asymmetric cipher",
       "lines": [
         "Type: asymmetric — public key (e, n) encrypts; private key (d, n) decrypts.",
-        "Strength: factoring n into p and q is believed infeasible for large n. This page uses "
-        "small primes for speed.",
         "Key generation step 1: choose two distinct primes p and q.",
         "Key generation step 2: compute modulus n = p×q.",
         "Key generation step 3: compute Euler totient φ(n) = (p−1)(q−1).",
@@ -298,7 +296,7 @@ def rsa(
   action = (action or "encrypt").lower()
 
   if regenerate:
-    # this path only refreshes keys and explanatory steps
+    # this path refreshes keys and explanatory steps
     if p_str and str(p_str).strip() and q_str and str(q_str).strip():
       try:
         p_in = int(str(p_str).strip())
@@ -323,42 +321,32 @@ def rsa(
     }
 
   if not n_str or not str(n_str).strip():
-    if action == "decrypt":
-      return {
-        "text": "",
-        "raw_out": None,
-        "steps": [
-          {
-            "type": "note",
-            "text": "Decrypt needs modulus n and private exponent d. Generate a key pair first, "
-            "then encrypt; or paste n and d if you have them.",
-          }
-        ],
-        "keys": None,
-        "error": "Missing keys.",
-      }
-    keys = _rsa_generate_keys()
-  else:
-    try:
-      # accept partial key bundles; missing parts are validated per action
-      n = int(str(n_str).strip())
-      e = int(str(e_str).strip()) if e_str and str(e_str).strip() else None
-      d = int(str(d_str).strip()) if d_str and str(d_str).strip() else None
-      p = int(str(p_str).strip()) if p_str and str(p_str).strip() else None
-      q = int(str(q_str).strip()) if q_str and str(q_str).strip() else None
-      phi = int(str(phi_str).strip()) if phi_str and str(phi_str).strip() else None
-    except ValueError:
-      return {
-        "text": "",
-        "raw_out": None,
-        "steps": [],
-        "keys": None,
-        "error": "Key fields must be integers.",
-      }
-    keys = {"n": n, "e": e, "d": d, "p": p, "q": q, "phi": phi}
+    return {
+      "text": "",
+      "raw_out": None,
+      "steps": [],
+      "keys": None,
+      "error": "Modulus n is required.",
+    }
 
-  # validate key relationships when enough information is available
-  if keys["n"] is not None and keys["n"] <= 1:
+  try:
+    n = int(str(n_str).strip())
+    e = int(str(e_str).strip()) if e_str and str(e_str).strip() else None
+    d = int(str(d_str).strip()) if d_str and str(d_str).strip() else None
+    p = int(str(p_str).strip()) if p_str and str(p_str).strip() else None
+    q = int(str(q_str).strip()) if q_str and str(q_str).strip() else None
+    phi = int(str(phi_str).strip()) if phi_str and str(phi_str).strip() else None
+  except ValueError:
+    return {
+      "text": "",
+      "raw_out": None,
+      "steps": [],
+      "keys": None,
+      "error": "Key fields must be integers.",
+    }
+  keys = {"n": n, "e": e, "d": d, "p": p, "q": q, "phi": phi}
+
+  if keys["n"] <= 1:
     return {
       "text": "",
       "raw_out": None,
@@ -366,6 +354,15 @@ def rsa(
       "keys": keys,
       "error": "Modulus n must be greater than 1.",
     }
+  if keys.get("e") is not None and keys["e"] <= 1:
+    return {
+      "text": "",
+      "raw_out": None,
+      "steps": [],
+      "keys": keys,
+      "error": "Public exponent e must be greater than 1.",
+    }
+
   if keys.get("p") is not None and keys.get("q") is not None and keys["p"] * keys["q"] != keys["n"]:
     return {
       "text": "",
@@ -389,32 +386,23 @@ def rsa(
       "error": "Key fields are inconsistent: phi(n) does not match p and q.",
     }
 
-  if keys.get("e") is not None:
-    if keys["e"] <= 1:
+  if keys.get("e") is not None and phi_eff is not None:
+    if keys["e"] >= phi_eff:
       return {
         "text": "",
         "raw_out": None,
         "steps": [],
         "keys": keys,
-        "error": "Public exponent e must be greater than 1.",
+        "error": "Public exponent e must satisfy 1 < e < phi(n).",
       }
-    if phi_eff is not None:
-      if keys["e"] >= phi_eff:
-        return {
-          "text": "",
-          "raw_out": None,
-          "steps": [],
-          "keys": keys,
-          "error": "Public exponent e must satisfy 1 < e < phi(n).",
-        }
-      if math.gcd(keys["e"], phi_eff) != 1:
-        return {
-          "text": "",
-          "raw_out": None,
-          "steps": [],
-          "keys": keys,
-          "error": "Public exponent e must be coprime with phi(n).",
-        }
+    if math.gcd(keys["e"], phi_eff) != 1:
+      return {
+        "text": "",
+        "raw_out": None,
+        "steps": [],
+        "keys": keys,
+        "error": "Public exponent e must be coprime with phi(n).",
+      }
 
   if keys.get("d") is not None and phi_eff is not None and keys.get("e") is not None:
     if (keys["d"] * keys["e"]) % phi_eff != 1:
