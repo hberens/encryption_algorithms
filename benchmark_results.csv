@@ -1,0 +1,5 @@
+timestamp_utc,algorithm,action,input_type,input_size_bytes,elapsed_ns
+2026-04-20T18:20:06.662735+00:00,vigenere,decrypt,message,909,1212917
+2026-04-20T18:20:12.412162+00:00,vigenere,decrypt,message,909,816334
+2026-04-20T18:20:51.471264+00:00,vigenere,decrypt,message,909,475000
+2026-04-20T18:22:07.938322+00:00,vigenere,decrypt,message,909,783791

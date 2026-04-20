@@ -5,6 +5,8 @@ import os
 import re
 import time
 import base64
+import csv
+from datetime import datetime, timezone
 
 import des as des_module
 
@@ -18,6 +20,41 @@ from io_helpers import (
 app = Flask(__name__)
 
 _SAFE_NAME = re.compile(r"[^a-zA-Z0-9._-]+")
+_BENCHMARK_CSV = os.path.join(os.path.dirname(__file__), "benchmark_results.csv")
+
+
+def _input_size_bytes(data: bytes | str | None) -> int:
+  if data is None:
+    return 0
+  if isinstance(data, bytes):
+    return len(data)
+  return len(data.encode("utf-8"))
+
+
+def _log_benchmark(algorithm: str, action: str, input_type: str, input_size_bytes: int, elapsed_ns: int | None):
+  if elapsed_ns is None:
+    return
+  row = {
+    "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+    "algorithm": algorithm,
+    "action": action,
+    "input_type": input_type,
+    "input_size_bytes": input_size_bytes,
+    "elapsed_ns": elapsed_ns,
+  }
+  try:
+    write_header = not os.path.exists(_BENCHMARK_CSV) or os.path.getsize(_BENCHMARK_CSV) == 0
+    with open(_BENCHMARK_CSV, "a", newline="", encoding="utf-8") as fh:
+      writer = csv.DictWriter(
+        fh,
+        fieldnames=["timestamp_utc", "algorithm", "action", "input_type", "input_size_bytes", "elapsed_ns"],
+      )
+      if write_header:
+        writer.writeheader()
+      writer.writerow(row)
+  except OSError:
+    # logging should never break encryption/decryption requests
+    pass
 
 
 def _safe_export_name(name: str, fallback: str) -> str:
@@ -64,6 +101,7 @@ def vigenere_page():
   message, key, action = "", "", "encrypt"
   answer = None
   elapsed_ns = None
+  benchmark_input_size = None
   vigenere_steps = None
   show_textbox = True
   download_data = None
@@ -81,6 +119,8 @@ def vigenere_page():
     vigenere_steps = out["steps"]
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
+    benchmark_input_size = _input_size_bytes(message)
+    _log_benchmark("vigenere", action, "message", benchmark_input_size, elapsed_ns)
     o = _apply_output_mode(
       output_mode,
       answer,
@@ -100,6 +140,10 @@ def vigenere_page():
     action=action,
     answer=answer,
     elapsed_time=elapsed_ns,
+    benchmark_algorithm="vigenere",
+    benchmark_action=action,
+    benchmark_input_type="message",
+    benchmark_input_size=benchmark_input_size,
     vigenere_steps=vigenere_steps,
     show_textbox=show_textbox,
     download_data=download_data,
@@ -114,6 +158,7 @@ def rsa_page():
   input_type = "message"  # message | file
   answer = None
   elapsed_ns = None
+  benchmark_input_size = None
   rsa_steps = None
   rsa_keys = None
   rsa_error = None
@@ -183,6 +228,8 @@ def rsa_page():
     rsa_error = out["error"]
     end_ns = time.perf_counter_ns()
     elapsed_ns = end_ns - start_ns
+    benchmark_input_size = _input_size_bytes(msg_arg)
+    _log_benchmark("rsa", action, input_type, benchmark_input_size, elapsed_ns)
 
     if rsa_error:
       answer = None
@@ -213,6 +260,10 @@ def rsa_page():
     input_type=input_type,
     answer=answer,
     elapsed_time=elapsed_ns,
+    benchmark_algorithm="rsa",
+    benchmark_action=action,
+    benchmark_input_type=input_type,
+    benchmark_input_size=benchmark_input_size,
     rsa_steps=rsa_steps,
     rsa_keys=rsa_keys,
     rsa_error=rsa_error,
@@ -228,6 +279,7 @@ def des_page():
   input_type = "message"
   answer = None
   elapsed_ns = None
+  benchmark_input_size = None
   download_data = None
   filename = ""
   show_textbox = True
@@ -288,6 +340,8 @@ def des_page():
         answer = "ERROR: Invalid input"
       end_ns = time.perf_counter_ns()
       elapsed_ns = end_ns - start_ns
+      benchmark_input_size = _input_size_bytes(data_in)
+      _log_benchmark("des", action, input_type, benchmark_input_size, elapsed_ns)
 
       bad = isinstance(answer, str) and (
         answer.startswith("ERROR") or "Improper" in answer
@@ -357,6 +411,10 @@ def des_page():
     action=action,
     answer=answer,
     elapsed_time=elapsed_ns,
+    benchmark_algorithm="des",
+    benchmark_action=action,
+    benchmark_input_type=input_type,
+    benchmark_input_size=benchmark_input_size,
     input_type=input_type,
     download_data=download_data,
     filename=filename,
@@ -373,6 +431,7 @@ def aes_page():
   action = "encrypt"
   answer = None
   elapsed_ns = None
+  benchmark_input_size = None
   input_type = "message"
   download_data = None
   filename = ""
@@ -450,6 +509,8 @@ def aes_page():
         show_textbox = True
       end_ns = time.perf_counter_ns()
       elapsed_ns = end_ns - start_ns
+      benchmark_input_size = _input_size_bytes(data_in)
+      _log_benchmark("aes", action, input_type, benchmark_input_size, elapsed_ns)
     else:
       answer = f"ERROR: {err}"
 
@@ -462,6 +523,10 @@ def aes_page():
     action=action,
     answer=answer,
     elapsed_time=elapsed_ns,
+    benchmark_algorithm="aes",
+    benchmark_action=action,
+    benchmark_input_type=input_type,
+    benchmark_input_size=benchmark_input_size,
     input_type=input_type,
     download_data=download_data,
     filename=filename,
