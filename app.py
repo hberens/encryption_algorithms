@@ -185,10 +185,13 @@ def rsa_page():
     phi_f = request.form.get("phi_saved", "")
     p_input = request.form.get("p_input", "").strip()
     q_input = request.form.get("q_input", "").strip()
+    parse_error = None
     kf = read_upload_text(request.files.get("key_file"))
     if kf:
       # key file may provide direct rsa key values (n/e/d)
       parsed = parse_rsa_key_file(kf)
+      if not parsed:
+        parse_error = "Could not parse key file. Expected entries like n=..., e=..., d=... (or JSON)."
       n_f = parsed.get("n", n_f)
       e_f = parsed.get("e", e_f)
       d_f = parsed.get("d", d_f)
@@ -224,25 +227,33 @@ def rsa_page():
       else:
         msg_arg = message
 
-    start_ns = time.perf_counter_ns()
-    out = rsa(
-      msg_arg,
-      action,
-      n_str=n_f,
-      e_str=e_f,
-      d_str=d_f,
-      p_str=p_f,
-      q_str=q_f,
-      phi_str=phi_f,
-      regenerate=regenerate,
-    )
-    text_out = out["text"]
-    raw_out = out.get("raw_out")
-    rsa_steps = out["steps"]
-    rsa_keys = out["keys"]
-    rsa_error = out["error"]
-    end_ns = time.perf_counter_ns()
-    elapsed_ns = end_ns - start_ns
+    if parse_error:
+      text_out = ""
+      raw_out = None
+      rsa_steps = []
+      rsa_keys = None
+      rsa_error = parse_error
+      elapsed_ns = None
+    else:
+      start_ns = time.perf_counter_ns()
+      out = rsa(
+        msg_arg,
+        action,
+        n_str=n_f,
+        e_str=e_f,
+        d_str=d_f,
+        p_str=p_f,
+        q_str=q_f,
+        phi_str=phi_f,
+        regenerate=regenerate,
+      )
+      text_out = out["text"]
+      raw_out = out.get("raw_out")
+      rsa_steps = out["steps"]
+      rsa_keys = out["keys"]
+      rsa_error = out["error"]
+      end_ns = time.perf_counter_ns()
+      elapsed_ns = end_ns - start_ns
 
     if rsa_error:
       # do not show timing when the operation failed
