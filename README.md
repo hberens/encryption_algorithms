@@ -1,6 +1,6 @@
 # encryption_algorithms
 
-make, activate, install venv
+To Run this project do the following:
 
 ```
 python3 -m venv venv
@@ -13,3 +13,5 @@ Run
 ```
 python3 app.py
 ```
+
+A description of the project is outlined on the website.
