@@ -50,8 +50,8 @@
 
                 <label>Message or ciphertext:</label>
                 <div class="toggle-options">
-                    <label><input type="radio" name="input_type" value="message" {% if input_type == 'message' %}checked{% endif %}> Type / paste</label>
-                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Upload file (any binary)</label>
+                    <label><input type="radio" name="input_type" value="message" {% if input_type == 'message' %}checked{% endif %}> Type text</label>
+                    <label><input type="radio" name="input_type" value="file" {% if input_type == 'file' %}checked{% endif %}> Upload file</label>
                 </div>
                 <textarea id="rsa-message" name="message" rows="5" {% if input_type != 'message' %}style="display:none;"{% endif %} placeholder="Encrypt: text or use file. Decrypt: comma-separated numbers (or upload .txt).">{{ message }}</textarea>
                 <input id="rsa-file" type="file" name="file" accept="*/*" {% if input_type != 'file' %}style="display:none;"{% endif %}>

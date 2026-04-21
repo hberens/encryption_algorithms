@@ -81,7 +81,7 @@ def _apply_output_mode(
     payload = download_bytes if download_bytes is not None else (text_display or "").encode("utf-8")
     return {
       "show_textbox": False,
-      "answer": "Output is ready — use the download button below.",
+      "answer": "Output is ready for download",
       "download_data": base64.b64encode(payload).decode("ascii"),
       "download_filename": default_filename,
     }
@@ -275,14 +275,18 @@ def rsa_page():
         fn = export_name + ".txt" if not export_name.endswith(".txt") else export_name
         b_dl = text_out.encode("utf-8")
         o = _apply_output_mode(output_mode, text_out, download_bytes=b_dl, default_filename=fn)
+        answer = o["answer"]
+        show_textbox = o["show_textbox"]
+        download_data = o["download_data"]
+        download_filename = o["download_filename"]
       else:
         fn = export_name if re.search(r"\.[a-z0-9]+$", export_name, re.I) else export_name + ".bin"
         b_dl = raw_out if raw_out is not None else text_out.encode("utf-8", errors="replace")
         o = _apply_output_mode(output_mode, text_out, download_bytes=b_dl, default_filename=fn)
-      answer = o["answer"]
-      show_textbox = o["show_textbox"]
-      download_data = o["download_data"]
-      download_filename = o["download_filename"]
+        answer = o["answer"]
+        show_textbox = o["show_textbox"]
+        download_data = o["download_data"]
+        download_filename = o["download_filename"]
 
   return render_template(
     "rsa.html",

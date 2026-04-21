@@ -1,12 +1,27 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>Computer security — cipher lab</h1>
-<p>This project implements several ciphers in a web interface. You can type a message or <strong>upload a file</strong> (for 3DES, AES, and RSA), <strong>import keys from a file</strong>, and choose whether to <strong>show the result on the page</strong> or <strong>download it as a file</strong>. Vigenère accepts <strong>text only</strong> for the message (as required for that cipher).</p>
+<h1>Learn Different Encryption Algorithms!</h1>
+<p>
+    This website lets you learn how to encrypt and decrypt different ciphers, test ciphers with text or files,
+    inspect algorithm notes, and compare execution time across runs.
+</p>
+
+<h3>What you can do:</h3>
 <ul>
-    <li><a href="/vigenere">Vigenère</a> — polyalphabetic text cipher.</li>
-    <li><a href="/des">3DES</a> — triple DES on binary data.</li>
-    <li><a href="/aes">AES</a> — AES-CBC (pure Python core).</li>
-    <li><a href="/rsa">RSA</a> — textbook RSA demo (small keys).</li>
+    <li>Encrypt or decrypt text directly</li>
+    <li>Upload variuos files to encrypt or decrypt (3DES, AES, and RSA).</li>
+    <li>Import key values from files where supported</li>
+    <li>Choose output mode- view on the page or download as a file</li>
+    <li>Track runtime for successful runs to compare performance</li>
 </ul>
+
+<h3>Choose an algorithm</h3>
+<ul>
+    <li><a href="/vigenere">Vigenère</a></li>
+    <li><a href="/des">3DES</a></li>
+    <li><a href="/aes">AES</a></li>
+    <li><a href="/rsa">RSA</a></li>
+</ul>
+
 {% endblock %}
