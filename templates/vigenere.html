@@ -5,8 +5,8 @@
         <div class="left">
             <h2>Vigenère description</h2>
             <p><strong>Type:</strong> Polyalphabetic substitution cipher (many “Caesar” shifts in one message).</p>
-            <p><strong>Strength:</strong> Much stronger than a single Caesar shift, but still breakable. With a short or repeated key, cryptanalysts use letter frequencies, the index of coincidence, and repeated patterns (Kasiski) to guess the key length and then each shift.</p>
-            <p><strong>How it works:</strong> Choose a keyword. A–Z are treated as numbers 0–25. Each plaintext letter is shifted by the value of the next keyword letter; the keyword wraps when it runs out. Encrypt: add the key letter (mod 26); decrypt: subtract it (mod 26). Spaces and punctuation are usually left unchanged (this app follows that rule and only advances the key on letters).</p>
+            <p><strong>Strength:</strong> Much stronger than a single Caesar shift, but still breakable. With a short or repeated key, cryptanalysts use letter frequencies, the index of coincidence, and repeated patterns to guess the key length and then each shift.</p>
+            <p><strong>How it works:</strong> Choose a keyword. A–Z are treated as numbers 0–25. Each plaintext letter is shifted by the value of the next keyword letter; the keyword wraps when it runs out. Encrypt: add the key letter (mod 26); decrypt: subtract it (mod 26).</p>
             <p><strong>Key:</strong> A word or phrase; longer, less predictable keys are harder to crack. There is no separate public/private key—anyone who knows the keyword can encrypt or decrypt.</p>
             <p><strong>Use:</strong> Historical cipher and teaching example; not used for serious security today.</p>
             <p><strong>Input note:</strong> Vigenère applies only to <strong>text</strong> (no arbitrary binary or image payloads).</p>
