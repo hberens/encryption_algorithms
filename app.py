@@ -400,11 +400,15 @@ def des_page():
           )
         else:
           text_for_box = answer.decode("utf-8", errors="replace")
-          default_fn = (
-            uploaded_file.filename.rsplit(".", 1)[0] + ".dec"
-            if uploaded_file and uploaded_file.filename and "." in uploaded_file.filename
-            else export_name + ".dec"
-          )
+          if uploaded_file and uploaded_file.filename:
+            original_name = uploaded_file.filename
+            if original_name.lower().endswith(".enc"):
+              restored = original_name[:-4]
+              default_fn = restored or "decrypted_output.bin"
+            else:
+              default_fn = original_name + ".dec"
+          else:
+            default_fn = export_name + ".dec"
         o = _apply_output_mode(
           output_mode,
           text_for_box,
