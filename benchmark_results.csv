@@ -66,6 +66,7 @@ timestamp_utc,algorithm,action,input_type,input_size_bytes,elapsed_ns
 2026-04-21T02:05:12.357977+00:00,rsa,encrypt,file,0,53333
 2026-04-21T02:05:23.488114+00:00,rsa,encrypt,file,26638,53030292
 2026-04-21T02:05:40.477882+00:00,rsa,encrypt,file,26638,53517375
+<<<<<<< HEAD
 2026-04-21T02:07:36.856515+00:00,des,encrypt,file,26638,5027967166
 2026-04-21T02:26:05.062550+00:00,vigenere,encrypt,message,14,53208
 2026-04-21T02:26:28.570031+00:00,vigenere,decrypt,message,909,730791
@@ -74,3 +75,6 @@ timestamp_utc,algorithm,action,input_type,input_size_bytes,elapsed_ns
 2026-04-21T02:27:51.079776+00:00,des,encrypt,file,26638,5045636208
 2026-04-22T19:03:32.743249+00:00,des,encrypt,file,26638,4997803250
 2026-04-22T19:04:12.463907+00:00,des,decrypt,file,26640,5014423333
+=======
+2026-04-21T02:07:36.856515+00:00,des,encrypt,file,26638,5027967166
+>>>>>>> 3fa9b676150946344668b1d794965e14a6da9ee1
