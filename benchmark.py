@@ -1,16 +1,26 @@
 import csv
-import sys
+import os
+import statistics
 import time
 from pathlib import Path
 
 from algorithms import des3, vigenere, aes_cipher, rsa
 
 
-SIZES = {
-  "1kb": 1024,
-  "10kb": 10 * 1024,
-  "100kb": 100 * 1024,
-}
+# Message sizes (label, bytes), ascending. Edit this list to add/change points.
+SIZES: list[tuple[str, int]] = [
+  ("256b", 256),
+  ("512b", 512),
+  ("1kb", 1024),
+  ("2kb", 2 * 1024),
+  ("4kb", 4 * 1024),
+  ("8kb", 8 * 1024),
+  ("10kb", 10 * 1024),
+  ("16kb", 16 * 1024),
+  ("32kb", 32 * 1024),
+  ("64kb", 64 * 1024),
+  ("100kb", 100 * 1024),
+]
 
 VIGENERE_KEY = "AARONELEANORHELENASADIE"
 AES_KEY_HEX = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
@@ -20,6 +30,10 @@ DES3_KEYS = (
   "23456789ABCDEF01",
   "456789ABCDEF0123",
 )
+RUNS_PER_POINT = max(1, int(os.environ.get("BENCH_RUNS", "10")))
+SIZE_LIMIT_RAW = os.environ.get("BENCH_SIZE_LIMIT", "").strip()
+SIZE_LIMIT = int(SIZE_LIMIT_RAW) if SIZE_LIMIT_RAW else 0
+SIZES_TO_RUN = SIZES[:SIZE_LIMIT] if SIZE_LIMIT > 0 else SIZES
 
 
 def make_payload(size_bytes: int) -> bytes:
@@ -135,6 +149,7 @@ def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
         "size_label",
         "size_bytes",
         "operation",
+        "run_index",
         "elapsed_ns",
         "elapsed_ms",
       ],
@@ -144,12 +159,17 @@ def write_csv(rows: list[dict[str, object]], output_path: Path) -> None:
 
 
 def print_summary(rows: list[dict[str, object]]) -> None:
-  print(f"{'Algorithm':<10} {'Size':<6} {'Op':<8} {'Time (ms)':>12}")
-  print("-" * 42)
+  grouped: dict[tuple[str, str, str], list[float]] = {}
   for row in rows:
-    print(
-      f"{row['algorithm']:<10} {row['size_label']:<6} {row['operation']:<8} {row['elapsed_ms']:>12}"
-    )
+    key = (str(row["algorithm"]), str(row["size_label"]), str(row["operation"]))
+    grouped.setdefault(key, []).append(float(row["elapsed_ns"]) / 1_000_000.0)
+
+  print(f"{'Algorithm':<10} {'Size':<6} {'Op':<8} {'Mean (ms)':>12} {'StdDev':>10}")
+  print("-" * 56)
+  for (algorithm, size_label, operation), vals in grouped.items():
+    mean_ms = statistics.mean(vals)
+    std_ms = statistics.stdev(vals) if len(vals) > 1 else 0.0
+    print(f"{algorithm:<10} {size_label:<6} {operation:<8} {mean_ms:>12.3f} {std_ms:>10.3f}")
 
 
 
@@ -164,23 +184,32 @@ def main() -> int:
     "rsa": lambda payload: benchmark_rsa(payload, rsa_keys),
   }
 
-  for size_label, size_bytes in SIZES.items():
+  total = len(SIZES_TO_RUN) * len(benchmarks) * RUNS_PER_POINT
+  done = 0
+  for size_label, size_bytes in SIZES_TO_RUN:
     payload = make_payload(size_bytes)
-    for algorithm, runner in benchmarks.items():
-      results = runner(payload)
-      for result in results:
-        rows.append(
-          {
-            "algorithm": algorithm,
-            "size_label": size_label,
-            "size_bytes": size_bytes,
-            "operation": result["operation"],
-            "elapsed_ns": result["elapsed_ns"],
-            "elapsed_ms": format_ms(result["elapsed_ns"]),
-          }
+    for run_index in range(1, RUNS_PER_POINT + 1):
+      for algorithm, runner in benchmarks.items():
+        done += 1
+        print(
+          f"[{done}/{total}] {algorithm} @ {size_label} ({size_bytes} bytes), run {run_index}/{RUNS_PER_POINT} …",
+          flush=True,
         )
+        results = runner(payload)
+        for result in results:
+          rows.append(
+            {
+              "algorithm": algorithm,
+              "size_label": size_label,
+              "size_bytes": size_bytes,
+              "operation": result["operation"],
+              "run_index": run_index,
+              "elapsed_ns": result["elapsed_ns"],
+              "elapsed_ms": format_ms(result["elapsed_ns"]),
+            }
+          )
 
-  output_path = Path("benchmarks.csv")
+  output_path = Path(__file__).resolve().parent / "benchmarks.csv"
   write_csv(rows, output_path)
   print_summary(rows)
   print(f"\nResults written to {output_path}")
